@@ -21,19 +21,22 @@
 TokenWise analyzes your prompts using NLP techniques and applies a chain of optimization strategies to reduce token count — lowering API costs while preserving intent.
 
 ```
-Original  →  48 tokens
-Optimized →  17 tokens   (64.6% saved)
+Original  →  21 tokens   $0.000063
+Optimized →   7 tokens   $0.000021   (66.7% saved)
 ```
 
-## Strategies
+## Pipeline
 
-| Strategy | Description |
-|---|---|
-| `whitespace_collapse` | Removes redundant spaces and blank lines |
-| `verbose_phrases` | Replaces wordy expressions (`in order to` → `to`) |
-| `redundancy_removal` | Eliminates duplicate sentences |
-| `stopword_removal` | Drops low-value function words (NLTK) |
-| `lemmatization` | Normalizes inflected word forms (NLTK WordNet) |
+Each prompt runs through five strategies in sequence, followed by a post-processor that restores correct punctuation, capitalization, and contractions.
+
+| Step | Strategy | Description |
+|---|---|---|
+| 1 | `whitespace_collapse` | Removes redundant spaces and blank lines |
+| 2 | `verbose_phrases` | Replaces wordy expressions (`in order to` → `to`) |
+| 3 | `redundancy_removal` | Eliminates duplicate sentences |
+| 4 | `stopword_removal` | Drops low-value function words (NLTK) |
+| 5 | `lemmatization` | Normalizes inflected word forms (NLTK WordNet) |
+| ✦ | `postprocessor` | Fixes punctuation spacing, capitalization, and apostrophes |
 
 Two built-in presets: **default** (all strategies) and **conservative** (safe strategies only, preserves natural language).
 
@@ -76,9 +79,11 @@ tokenwise --no-report "your prompt here"
 ### Example output
 
 ```
-╭──────────────────────────── Token Optimizer Report ────────────────────────────╮
-│ Model: claude   Original: 21 tokens   Optimized: 7 tokens   Saved: 14 (66.7%) │
-╰─────────────────────────────────────────────────────────────────────────────────╯
+╭────────────────────────────── TokenWise Report ──────────────────────────────╮
+│ Model: claude-sonnet-4-6  Price: $3.0/M tokens                               │
+│ Tokens: 21 → 7  Saved: 14 (66.7%)                                            │
+│ Cost:   $0.000063 → $0.000021  Saved: $0.000042 (66.7%)                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
   Strategy              Tokens saved    Status
  ────────────────────────────────────────────────
@@ -89,18 +94,24 @@ tokenwise --no-report "your prompt here"
   lemmatization                    0   no change
 
 ──────────────────────────── Optimized Prompt ──────────────────────────────
-use feature , should help user .
+Use feature, should help user.
 ────────────────────────────────────────────────────────────────────────────
 ```
 
 ## Supported Models
 
-| Model | Token Encoding |
+| Model | Input price |
 |---|---|
-| `claude` (all versions) | `cl100k_base` |
-| `gpt-4` | `cl100k_base` |
-| `gpt-3.5` | `cl100k_base` |
-| `codex` / `text-davinci` | `p50k_base` |
+| `claude-opus-4-7` | $15.00 / 1M tokens |
+| `claude-sonnet-4-6` | $3.00 / 1M tokens |
+| `claude-haiku-4-5` | $0.80 / 1M tokens |
+| `gpt-4o` | $2.50 / 1M tokens |
+| `gpt-4` | $30.00 / 1M tokens |
+| `gpt-4o-mini` | $0.15 / 1M tokens |
+| `gpt-3.5-turbo` | $0.50 / 1M tokens |
+| `codex` / `text-davinci` | $2.00 / 1M tokens |
+
+Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resolve automatically.
 
 ## Running Tests
 
@@ -108,16 +119,20 @@ use feature , should help user .
 python -m pytest tests/ -v
 ```
 
+45 tests across tokenizer, NLP, strategies, pricing, postprocessor, and optimizer pipeline.
+
 ## Project Structure
 
 ```
 TokenWise/
 ├── optimizer/
-│   ├── core.py         # Optimizer pipeline
-│   ├── strategies.py   # Pluggable optimization strategies
-│   ├── nlp.py          # NLTK processing
-│   ├── tokenizer.py    # Token counting (tiktoken)
-│   └── models.py       # Data types
+│   ├── core.py            # Optimizer pipeline
+│   ├── strategies.py      # Pluggable optimization strategies
+│   ├── nlp.py             # NLTK processing
+│   ├── tokenizer.py       # Token counting (tiktoken)
+│   ├── pricing.py         # Per-model USD cost calculation
+│   ├── postprocessor.py   # Output quality fix (punctuation, capitalization)
+│   └── models.py          # Data types
 ├── tests/
 ├── assets/
 │   └── tokenwise_logo.svg
