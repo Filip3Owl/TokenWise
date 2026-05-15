@@ -2,6 +2,7 @@ from .models import OptimizationResult, StrategyResult
 from .strategies import DEFAULT_STRATEGIES, CONSERVATIVE_STRATEGIES, Strategy
 from .tokenizer import count_tokens
 from .pricing import calculate_cost
+from .postprocessor import postprocess
 
 
 class Optimizer:
@@ -24,6 +25,7 @@ class Optimizer:
             if result.tokens_saved > 0:
                 current_text = result.optimized_text
 
+        current_text = postprocess(current_text)
         final_tokens = count_tokens(current_text, model)
 
         return OptimizationResult(
