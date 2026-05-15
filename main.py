@@ -2,7 +2,7 @@
 import argparse
 import sys
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.table import Table
 from rich import box
 from rich.panel import Panel
@@ -11,6 +11,24 @@ from optimizer.core import Optimizer
 from optimizer.pricing import format_cost, get_price
 
 console = Console()
+
+_STRATEGY_LABELS = {
+    "whitespace_collapse": "Whitespace Collapse",
+    "verbose_phrases":     "Verbose Phrases",
+    "redundancy_removal":  "Redundancy Removal",
+    "stopword_removal":    "Stopword Removal",
+}
+
+
+def _strategy_label(name: str) -> str:
+    return _STRATEGY_LABELS.get(name, name.replace("_", " ").title())
+
+
+def _token_bar(saved: int, max_saved: int, width: int = 16) -> str:
+    if max_saved == 0 or saved <= 0:
+        return "[dim]" + "░" * width + "[/dim]"
+    filled = max(1, round(saved / max_saved * width))
+    return "[green]" + "█" * filled + "[/green]" + "[dim]" + "░" * (width - filled) + "[/dim]"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -54,33 +72,57 @@ def build_parser() -> argparse.ArgumentParser:
 def print_report(result) -> None:
     price = get_price(result.model)
     savings_color = "green" if result.tokens_saved > 0 else "yellow"
-
     lang_label = {"en": "English", "pt": "Português"}.get(result.lang, result.lang)
-    summary = (
-        f"[bold]Model:[/bold] {result.model}  "
-        f"[bold]Language:[/bold] {lang_label}  "
-        f"[bold]Price:[/bold] ${price.input_per_million:.2f}/M tokens\n"
-        f"[bold]Tokens:[/bold] {result.original_tokens} → [{savings_color}]{result.final_tokens}[/{savings_color}]  "
-        f"[bold]Saved:[/bold] [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]\n"
-        f"[bold]Cost:[/bold]   {format_cost(result.original_cost)} → [{savings_color}]{format_cost(result.final_cost)}[/{savings_color}]  "
-        f"[bold]Saved:[/bold] [{savings_color}]{format_cost(result.cost_saved)} ({result.cost_savings_pct:.1f}%)[/{savings_color}]"
-    )
-    console.print(Panel(summary, title="[bold blue]TokenWise Report[/bold blue]", box=box.ROUNDED))
 
-    table = Table(box=box.SIMPLE_HEAD)
-    table.add_column("Strategy", style="cyan")
-    table.add_column("Tokens saved", justify="right")
-    table.add_column("Status", justify="center")
+    meta = (
+        f"[dim]Model[/dim]     [bold]{result.model}[/bold]   "
+        f"[dim]Language[/dim]  [bold]{lang_label}[/bold]   "
+        f"[dim]Price[/dim]     [bold]${price.input_per_million:.2f}/M tokens[/bold]"
+    )
+
+    stats = Table.grid(padding=(0, 4))
+    stats.add_column()
+    stats.add_column()
+    stats.add_row(
+        f"[dim]Tokens[/dim]   {result.original_tokens} [dim]→[/dim] [{savings_color} bold]{result.final_tokens}[/{savings_color} bold]",
+        f"[dim]Cost[/dim]     {format_cost(result.original_cost)} [dim]→[/dim] [{savings_color} bold]{format_cost(result.final_cost)}[/{savings_color} bold]",
+    )
+    stats.add_row(
+        f"[dim]Saved[/dim]    [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]",
+        f"[dim]Saved[/dim]    [{savings_color}]{format_cost(result.cost_saved)} ({result.cost_savings_pct:.1f}%)[/{savings_color}]",
+    )
+
+    console.print(Panel(
+        Group(meta, "", stats),
+        title="[bold blue]TokenWise Report[/bold blue]",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+
+    max_saved = max((sr.tokens_saved for sr in result.strategy_results), default=0)
+
+    table = Table(box=box.SIMPLE_HEAD, show_edge=False, padding=(0, 1))
+    table.add_column("Strategy", style="cyan", min_width=22)
+    table.add_column("Savings", no_wrap=True)
+    table.add_column("Tokens", justify="right", min_width=6)
+    table.add_column("Status", justify="center", min_width=10)
 
     for sr in result.strategy_results:
-        status = "[green]applied[/green]" if sr.tokens_saved > 0 else "[dim]no change[/dim]"
-        table.add_row(sr.name, str(sr.tokens_saved), status)
+        bar = _token_bar(sr.tokens_saved, max_saved)
+        if sr.tokens_saved > 0:
+            table.add_row(_strategy_label(sr.name), bar, f"[green bold]-{sr.tokens_saved}[/green bold]", "[green]applied[/green]")
+        else:
+            table.add_row(_strategy_label(sr.name), bar, "[dim]—[/dim]", "[dim]no change[/dim]")
 
     console.print(table)
 
-    console.rule("[bold]Optimized Prompt[/bold]")
-    console.print(result.optimized_text)
-    console.rule()
+    console.print(Panel(
+        result.optimized_text,
+        title="[bold green]Optimized Prompt[/bold green]",
+        border_style="green",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
 
 
 def main() -> None:
