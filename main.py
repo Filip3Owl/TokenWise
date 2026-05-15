@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--conservative", "-c",
         action="store_true",
-        help="Use only safe strategies (no stopword/lemmatization removal)",
+        help="Use only safe strategies (no stopword removal)",
     )
     parser.add_argument(
         "--output", "-o",

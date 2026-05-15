@@ -45,16 +45,6 @@ class StopwordRemovalStrategy(Strategy):
         return StrategyResult(self.name, text, optimized, before - after)
 
 
-class LemmatizationStrategy(Strategy):
-    name = "lemmatization"
-
-    def apply(self, text: str, model: str, lang: str = "en") -> StrategyResult:
-        before = count_tokens(text, model)
-        optimized = nlp.lemmatize(text, lang=lang)
-        after = count_tokens(optimized, model)
-        return StrategyResult(self.name, text, optimized, before - after)
-
-
 class VerbosePhrasesStrategy(Strategy):
     """Replace common verbose patterns with concise equivalents."""
     name = "verbose_phrases"
@@ -121,7 +111,6 @@ DEFAULT_STRATEGIES: list[Strategy] = [
     VerbosePhrasesStrategy(),
     RedundancyRemovalStrategy(),
     StopwordRemovalStrategy(),
-    LemmatizationStrategy(),
 ]
 
 CONSERVATIVE_STRATEGIES: list[Strategy] = [
