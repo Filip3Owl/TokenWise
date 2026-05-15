@@ -4,21 +4,22 @@
 
 <p align="center">
   <strong>Reduce LLM token consumption without losing prompt meaning.</strong><br/>
-  NLP-powered optimizer for Claude, GPT-4, and Codex prompts.
+  NLP-powered optimizer for Claude, GPT-4, and Codex prompts — English and Portuguese.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.14-blue?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Codex-6366f1?style=flat-square"/>
-  <img src="https://img.shields.io/badge/NLTK-powered-orange?style=flat-square"/>
+  <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-57%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
 
 ## What it does
 
-TokenWise analyzes your prompts using NLP techniques and applies a chain of optimization strategies to reduce token count — lowering API costs while preserving intent.
+TokenWise analyzes your prompts using NLP techniques and applies a chain of optimization strategies to reduce token count — lowering API costs while preserving intent. Language is detected automatically.
 
 ```
 Original  →  21 tokens   $0.000063
@@ -32,13 +33,24 @@ Each prompt runs through five strategies in sequence, followed by a post-process
 | Step | Strategy | Description |
 |---|---|---|
 | 1 | `whitespace_collapse` | Removes redundant spaces and blank lines |
-| 2 | `verbose_phrases` | Replaces wordy expressions (`in order to` → `to`) |
+| 2 | `verbose_phrases` | Replaces wordy expressions — patterns for EN and PT |
 | 3 | `redundancy_removal` | Eliminates duplicate sentences |
 | 4 | `stopword_removal` | Drops low-value function words (NLTK) |
-| 5 | `lemmatization` | Normalizes inflected word forms (NLTK WordNet) |
+| 5 | `lemmatization` | Normalizes inflected word forms (English only) |
 | ✦ | `postprocessor` | Fixes punctuation spacing, capitalization, and apostrophes |
 
-Two built-in presets: **default** (all strategies) and **conservative** (safe strategies only, preserves natural language).
+Two built-in presets: **default** (all strategies) and **conservative** (whitespace + verbose phrases + redundancy only).
+
+## Language Support
+
+Language is detected automatically via `langdetect`. Use `--lang` to override.
+
+| Feature | English | Portuguese |
+|---|---|---|
+| Stopword removal | ✓ 179 words | ✓ 207 words |
+| Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns |
+| Redundancy removal | ✓ | ✓ |
+| Lemmatization | ✓ NLTK WordNet | — |
 
 ## Installation
 
@@ -57,8 +69,12 @@ This installs `tokenwise` as a global command — no need to call `python main.p
 ## Usage
 
 ```bash
-# Optimize a prompt directly
+# Optimize a prompt (language auto-detected)
 tokenwise "In order to make use of this feature, please be advised that you should provide assistance to the user."
+
+# Force a language
+tokenwise --lang pt "Com o objetivo de utilizar este recurso."
+tokenwise --lang en "Your prompt here."
 
 # Read from file
 tokenwise --file prompt.txt
@@ -76,11 +92,12 @@ tokenwise --file prompt.txt --output optimized.txt
 tokenwise --no-report "your prompt here"
 ```
 
-### Example output
+## Example output
 
+**English:**
 ```
 ╭────────────────────────────── TokenWise Report ──────────────────────────────╮
-│ Model: claude-sonnet-4-6  Price: $3.0/M tokens                               │
+│ Model: claude-sonnet-4-6  Language: English  Price: $3.0/M tokens            │
 │ Tokens: 21 → 7  Saved: 14 (66.7%)                                            │
 │ Cost:   $0.000063 → $0.000021  Saved: $0.000042 (66.7%)                      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -95,6 +112,27 @@ tokenwise --no-report "your prompt here"
 
 ──────────────────────────── Optimized Prompt ──────────────────────────────
 Use feature, should help user.
+────────────────────────────────────────────────────────────────────────────
+```
+
+**Portuguese:**
+```
+╭────────────────────────────── TokenWise Report ──────────────────────────────╮
+│ Model: claude-sonnet-4-6  Language: Português  Price: $3.0/M tokens          │
+│ Tokens: 21 → 14  Saved: 7 (33.3%)                                            │
+│ Cost:   $0.000063 → $0.000042  Saved: $0.000021 (33.3%)                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+  Strategy              Tokens saved    Status
+ ────────────────────────────────────────────────
+  whitespace_collapse              0   no change
+  verbose_phrases                  3   applied
+  redundancy_removal               0   no change
+  stopword_removal                 4   applied
+  lemmatization                    0   no change
+
+──────────────────────────── Optimized Prompt ──────────────────────────────
+Utilizar recurso, favor forneça assistência usuário sistema.
 ────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -119,16 +157,16 @@ Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resol
 python -m pytest tests/ -v
 ```
 
-45 tests across tokenizer, NLP, strategies, pricing, postprocessor, and optimizer pipeline.
+57 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, and optimizer pipeline.
 
 ## Project Structure
 
 ```
 TokenWise/
 ├── optimizer/
-│   ├── core.py            # Optimizer pipeline
-│   ├── strategies.py      # Pluggable optimization strategies
-│   ├── nlp.py             # NLTK processing
+│   ├── core.py            # Optimizer pipeline + language detection
+│   ├── strategies.py      # Pluggable strategies with EN/PT phrase lists
+│   ├── nlp.py             # NLTK processing (en + pt)
 │   ├── tokenizer.py       # Token counting (tiktoken)
 │   ├── pricing.py         # Per-model USD cost calculation
 │   ├── postprocessor.py   # Output quality fix (punctuation, capitalization)
