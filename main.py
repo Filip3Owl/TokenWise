@@ -59,7 +59,7 @@ def print_report(result) -> None:
     summary = (
         f"[bold]Model:[/bold] {result.model}  "
         f"[bold]Language:[/bold] {lang_label}  "
-        f"[bold]Price:[/bold] ${price.input_per_million}/M tokens\n"
+        f"[bold]Price:[/bold] ${price.input_per_million:.2f}/M tokens\n"
         f"[bold]Tokens:[/bold] {result.original_tokens} → [{savings_color}]{result.final_tokens}[/{savings_color}]  "
         f"[bold]Saved:[/bold] [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]\n"
         f"[bold]Cost:[/bold]   {format_cost(result.original_cost)} → [{savings_color}]{format_cost(result.final_cost)}[/{savings_color}]  "
