@@ -4,64 +4,99 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Python CLI tool that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, OpenAI Codex). Uses NLTK for linguistic processing and `tiktoken` for accurate token counting.
+Python CLI tool that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Codex). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
 ## Environment
 
 ```bash
-source venv/bin/activate          # activate before running anything
-pip install -r requirements.txt   # install/sync dependencies
+source venv/bin/activate   # activate before running anything
+pip install -e .           # install package + dependencies (editable mode)
 ```
 
-Python 3.14 · dependencies: `nltk`, `tiktoken`, `anthropic`, `openai`, `rich`
+Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`
 
 ## Commands
 
 ```bash
-# Run the optimizer
-python main.py "Your prompt here"
-python main.py --file prompt.txt --model claude-sonnet-4-6
+# Run the optimizer (installed as global command)
+tokenwise "Your prompt here"
+tokenwise --file prompt.txt --model claude-sonnet-4-6
+tokenwise --lang pt "Seu prompt aqui"
+tokenwise --conservative "prompt"
+tokenwise --no-report "prompt"
 
 # Run tests
-python -m pytest tests/
+python -m pytest tests/ -v
 python -m pytest tests/test_optimizer.py::test_name   # single test
 
-# Download NLTK data (first run)
-python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet')"
+# Download NLTK data (first run only — SSL fix required on macOS)
+python -c "
+import ssl, nltk
+ssl._create_default_https_context = ssl._create_unverified_context
+nltk.download('punkt_tab'); nltk.download('stopwords')
+nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('rslp')
+"
 ```
 
 ## Architecture
 
 ```
-main.py              — CLI entry point (argparse), calls Optimizer pipeline
+main.py                — CLI entry point (argparse + rich), calls Optimizer
 optimizer/
-  core.py            — Optimizer class: orchestrates the pipeline
-  tokenizer.py       — Token counting via tiktoken (model-aware)
-  nlp.py             — NLTK-based text processing (stopword removal, lemmatization, redundancy detection)
-  strategies.py      — Individual optimization strategies (each returns modified text + savings report)
-  models.py          — Dataclasses: OptimizationResult, TokenReport, Strategy
+  core.py              — Optimizer class: language detection + strategy pipeline
+  tokenizer.py         — Token counting via tiktoken (model-aware)
+  nlp.py               — NLTK processing: stopwords, lemmatization, redundancy (en + pt)
+  strategies.py        — Pluggable Strategy classes; verbose phrase lists for en and pt
+  postprocessor.py     — Output quality fix: punctuation spacing, capitalization, apostrophes
+  pricing.py           — Per-model USD cost table + calculate_cost() / format_cost()
+  models.py            — Dataclasses: OptimizationResult, StrategyResult
 tests/
   test_optimizer.py
   test_tokenizer.py
   test_nlp.py
+  test_postprocessor.py
+  test_pricing.py
+  test_lang.py
+pyproject.toml         — package entry point: tokenwise = "main:main"
 requirements.txt
 ```
 
 ## Optimization Pipeline
 
-Each prompt runs through a strategy chain in `core.py`:
-1. **Tokenize** — count original tokens per target model
-2. **NLP preprocessing** — remove stopwords, lemmatize, detect repetition (NLTK)
-3. **Strategy application** — each `Strategy` is applied in order; strategies are composable and individually togglable
-4. **Report** — `OptimizationResult` carries original count, final count, % savings, and per-strategy breakdown
+Each call to `Optimizer.optimize(text, model, lang)` in `core.py`:
+1. **Language detection** — `langdetect` auto-detects `en`/`pt`; overridden by `lang` arg
+2. **Strategy chain** — five `Strategy` objects applied in order, each returning `StrategyResult`
+3. **Postprocessing** — `postprocessor.postprocess()` fixes punctuation, capitalization, apostrophes
+4. **Cost calculation** — `pricing.calculate_cost()` maps token counts to USD per model
+5. **Result** — `OptimizationResult` with tokens, costs, savings %, lang, and per-strategy breakdown
 
-Strategies live in `strategies.py` and must implement `apply(text: str) -> tuple[str, int]` returning the modified text and tokens saved.
+### Strategy interface
+
+Every strategy in `strategies.py` implements:
+```python
+def apply(self, text: str, model: str, lang: str = "en") -> StrategyResult
+```
+
+Two presets in `strategies.py`: `DEFAULT_STRATEGIES` (all 5) and `CONSERVATIVE_STRATEGIES` (whitespace + verbose + redundancy only).
+
+### Language support
+
+| Feature | English | Portuguese |
+|---|---|---|
+| Stopword removal | ✓ 179 effective words | ✓ 207 effective words |
+| Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns |
+| Redundancy removal | ✓ | ✓ |
+| Lemmatization | ✓ NLTK WordNet | ✗ (stemmers too aggressive) |
 
 ## Model Token Encoding
 
-`tokenizer.py` maps model names to tiktoken encodings:
-- `claude-*` → `cl100k_base`
-- `gpt-4` / `codex` → `cl100k_base`
-- `gpt-3.5` → `cl100k_base`
+`tokenizer.py` maps model name prefixes to tiktoken encodings:
+- `claude-*`, `gpt-4*`, `gpt-3.5*` → `cl100k_base`
+- `codex`, `text-davinci` → `p50k_base`
+- Unknown models fall back to `cl100k_base`
 
 Token counts are always model-specific; never use character-based estimates.
+
+## Pricing
+
+`pricing.py` holds a static price table (USD per 1M input tokens). Prefix matching resolves short names like `claude` → `claude-sonnet-4-6`. Unknown models fall back to `claude-sonnet-4-6` pricing. Update `_PRICES` when model prices change.
