@@ -1,8 +1,22 @@
+from langdetect import detect, LangDetectException
+
 from .models import OptimizationResult, StrategyResult
 from .strategies import DEFAULT_STRATEGIES, CONSERVATIVE_STRATEGIES, Strategy
 from .tokenizer import count_tokens
 from .pricing import calculate_cost
 from .postprocessor import postprocess
+
+_SUPPORTED_LANGS = {"en", "pt"}
+
+
+def detect_language(text: str) -> str:
+    if not text.strip():
+        return "en"
+    try:
+        lang = detect(text)
+        return lang if lang in _SUPPORTED_LANGS else "en"
+    except LangDetectException:
+        return "en"
 
 
 class Optimizer:
@@ -14,13 +28,14 @@ class Optimizer:
         else:
             self.strategies = DEFAULT_STRATEGIES
 
-    def optimize(self, text: str, model: str = "claude") -> OptimizationResult:
+    def optimize(self, text: str, model: str = "claude", lang: str = "auto") -> OptimizationResult:
+        resolved_lang = detect_language(text) if lang == "auto" else lang
         original_tokens = count_tokens(text, model)
         current_text = text
         strategy_results: list[StrategyResult] = []
 
         for strategy in self.strategies:
-            result = strategy.apply(current_text, model)
+            result = strategy.apply(current_text, model, lang=resolved_lang)
             strategy_results.append(result)
             if result.tokens_saved > 0:
                 current_text = result.optimized_text
@@ -37,4 +52,5 @@ class Optimizer:
             original_cost=calculate_cost(original_tokens, model),
             final_cost=calculate_cost(final_tokens, model),
             strategy_results=strategy_results,
+            lang=resolved_lang,
         )

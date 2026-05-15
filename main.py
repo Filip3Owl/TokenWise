@@ -38,6 +38,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write optimized text to file instead of stdout",
     )
     parser.add_argument(
+        "--lang", "-l",
+        default="auto",
+        choices=["auto", "en", "pt"],
+        help="Language of the prompt (auto, en, pt). Default: auto",
+    )
+    parser.add_argument(
         "--no-report",
         action="store_true",
         help="Print only the optimized text, no report",
@@ -49,8 +55,10 @@ def print_report(result) -> None:
     price = get_price(result.model)
     savings_color = "green" if result.tokens_saved > 0 else "yellow"
 
+    lang_label = {"en": "English", "pt": "Português"}.get(result.lang, result.lang)
     summary = (
         f"[bold]Model:[/bold] {result.model}  "
+        f"[bold]Language:[/bold] {lang_label}  "
         f"[bold]Price:[/bold] ${price.input_per_million}/M tokens\n"
         f"[bold]Tokens:[/bold] {result.original_tokens} → [{savings_color}]{result.final_tokens}[/{savings_color}]  "
         f"[bold]Saved:[/bold] [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]\n"
@@ -91,7 +99,7 @@ def main() -> None:
     optimizer = Optimizer(conservative=args.conservative)
 
     with console.status("Optimizing...", spinner="dots"):
-        result = optimizer.optimize(text, model=args.model)
+        result = optimizer.optimize(text, model=args.model, lang=args.lang)
 
     if args.no_report:
         print(result.optimized_text)

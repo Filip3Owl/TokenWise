@@ -17,6 +17,7 @@ class OptimizationResult:
     original_tokens: int
     final_tokens: int
     model: str
+    lang: str = "en"
     original_cost: float = 0.0
     final_cost: float = 0.0
     strategy_results: list[StrategyResult] = field(default_factory=list)
