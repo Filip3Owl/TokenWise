@@ -5,6 +5,7 @@ from .strategies import DEFAULT_STRATEGIES, CONSERVATIVE_STRATEGIES, Strategy
 from .tokenizer import count_tokens
 from .pricing import calculate_cost
 from .postprocessor import postprocess
+from .codeblock import extract as extract_code, restore as restore_code
 
 _SUPPORTED_LANGS = {"en", "pt"}
 
@@ -31,7 +32,8 @@ class Optimizer:
     def optimize(self, text: str, model: str = "claude", lang: str = "auto") -> OptimizationResult:
         resolved_lang = detect_language(text) if lang == "auto" else lang
         original_tokens = count_tokens(text, model)
-        current_text = text
+
+        current_text, code_blocks = extract_code(text)
         strategy_results: list[StrategyResult] = []
 
         for strategy in self.strategies:
@@ -41,6 +43,7 @@ class Optimizer:
                 current_text = result.optimized_text
 
         current_text = postprocess(current_text)
+        current_text = restore_code(current_text, code_blocks)
         final_tokens = count_tokens(current_text, model)
 
         return OptimizationResult(
