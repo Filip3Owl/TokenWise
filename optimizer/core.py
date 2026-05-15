@@ -1,6 +1,7 @@
 from .models import OptimizationResult, StrategyResult
 from .strategies import DEFAULT_STRATEGIES, CONSERVATIVE_STRATEGIES, Strategy
 from .tokenizer import count_tokens
+from .pricing import calculate_cost
 
 
 class Optimizer:
@@ -31,5 +32,7 @@ class Optimizer:
             original_tokens=original_tokens,
             final_tokens=final_tokens,
             model=model,
+            original_cost=calculate_cost(original_tokens, model),
+            final_cost=calculate_cost(final_tokens, model),
             strategy_results=strategy_results,
         )

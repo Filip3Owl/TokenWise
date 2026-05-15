@@ -6,16 +6,16 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 from rich.panel import Panel
-from rich.text import Text
 
 from optimizer.core import Optimizer
+from optimizer.pricing import format_cost, get_price
 
 console = Console()
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="token-optimizer",
+        prog="tokenwise",
         description="Optimize prompts to reduce token consumption for LLM APIs.",
     )
     source = parser.add_mutually_exclusive_group(required=True)
@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model", "-m",
         default="claude",
-        help="Target model (claude, gpt-4, gpt-3.5, codex). Default: claude",
+        help="Target model (claude, gpt-4, gpt-4o, gpt-3.5, codex). Default: claude",
     )
     parser.add_argument(
         "--conservative", "-c",
@@ -46,17 +46,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def print_report(result) -> None:
+    price = get_price(result.model)
     savings_color = "green" if result.tokens_saved > 0 else "yellow"
 
     summary = (
-        f"[bold]Model:[/bold] {result.model}   "
-        f"[bold]Original:[/bold] {result.original_tokens} tokens   "
-        f"[bold]Optimized:[/bold] {result.final_tokens} tokens   "
-        f"[bold]Saved:[/bold] [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]"
+        f"[bold]Model:[/bold] {result.model}  "
+        f"[bold]Price:[/bold] ${price.input_per_million}/M tokens\n"
+        f"[bold]Tokens:[/bold] {result.original_tokens} → [{savings_color}]{result.final_tokens}[/{savings_color}]  "
+        f"[bold]Saved:[/bold] [{savings_color}]{result.tokens_saved} ({result.savings_pct:.1f}%)[/{savings_color}]\n"
+        f"[bold]Cost:[/bold]   {format_cost(result.original_cost)} → [{savings_color}]{format_cost(result.final_cost)}[/{savings_color}]  "
+        f"[bold]Saved:[/bold] [{savings_color}]{format_cost(result.cost_saved)} ({result.cost_savings_pct:.1f}%)[/{savings_color}]"
     )
-    console.print(Panel(summary, title="[bold blue]Token Optimizer Report[/bold blue]", box=box.ROUNDED))
+    console.print(Panel(summary, title="[bold blue]TokenWise Report[/bold blue]", box=box.ROUNDED))
 
-    table = Table(box=box.SIMPLE_HEAD, show_footer=False)
+    table = Table(box=box.SIMPLE_HEAD)
     table.add_column("Strategy", style="cyan")
     table.add_column("Tokens saved", justify="right")
     table.add_column("Status", justify="center")
