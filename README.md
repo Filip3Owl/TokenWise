@@ -40,12 +40,14 @@ Two built-in presets: **default** (all strategies) and **conservative** (safe st
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/tokenwise.git
-cd tokenwise
+git clone https://github.com/Filip3Owl/TokenWise.git
+cd TokenWise
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
+
+This installs `tokenwise` as a global command — no need to call `python main.py` directly.
 
 > **macOS note:** NLTK data is downloaded automatically on first run.
 
@@ -53,41 +55,41 @@ pip install -r requirements.txt
 
 ```bash
 # Optimize a prompt directly
-python main.py "In order to make use of this feature, please be advised that you should provide assistance to the user."
+tokenwise "In order to make use of this feature, please be advised that you should provide assistance to the user."
 
 # Read from file
-python main.py --file prompt.txt
+tokenwise --file prompt.txt
 
 # Target a specific model
-python main.py --model gpt-4 "your prompt here"
+tokenwise --model gpt-4 "your prompt here"
 
 # Conservative mode (no stopword or lemmatization removal)
-python main.py --conservative "your prompt here"
+tokenwise --conservative "your prompt here"
 
 # Save optimized output to file
-python main.py --file prompt.txt --output optimized.txt
+tokenwise --file prompt.txt --output optimized.txt
 
 # Print only the result, no report
-python main.py --no-report "your prompt here"
+tokenwise --no-report "your prompt here"
 ```
 
 ### Example output
 
 ```
 ╭──────────────────────────── Token Optimizer Report ────────────────────────────╮
-│ Model: claude   Original: 48 tokens   Optimized: 17 tokens   Saved: 31 (64.6%) │
+│ Model: claude   Original: 21 tokens   Optimized: 7 tokens   Saved: 14 (66.7%) │
 ╰─────────────────────────────────────────────────────────────────────────────────╯
 
   Strategy              Tokens saved    Status
  ────────────────────────────────────────────────
   whitespace_collapse              0   no change
-  verbose_phrases                 23   applied
+  verbose_phrases                 10   applied
   redundancy_removal               0   no change
-  stopword_removal                 8   applied
+  stopword_removal                 4   applied
   lemmatization                    0   no change
 
 ──────────────────────────── Optimized Prompt ──────────────────────────────
-use tool , should help user . note : performance matters , system scale meet demand .
+use feature , should help user .
 ────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -109,7 +111,7 @@ python -m pytest tests/ -v
 ## Project Structure
 
 ```
-tokenwise/
+TokenWise/
 ├── optimizer/
 │   ├── core.py         # Optimizer pipeline
 │   ├── strategies.py   # Pluggable optimization strategies
@@ -120,6 +122,7 @@ tokenwise/
 ├── assets/
 │   └── tokenwise_logo.svg
 ├── main.py
+├── pyproject.toml
 └── requirements.txt
 ```
 
