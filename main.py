@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="tokenwise",
         description="Optimize prompts to reduce token consumption for LLM APIs.",
     )
-    source = parser.add_mutually_exclusive_group(required=True)
+    source = parser.add_mutually_exclusive_group(required=False)
     source.add_argument("prompt", nargs="?", help="Prompt text to optimize")
     source.add_argument("--file", "-f", metavar="PATH", help="Read prompt from file")
 
@@ -135,8 +135,13 @@ def main() -> None:
         except OSError as e:
             console.print(f"[red]Error reading file:[/red] {e}")
             sys.exit(1)
-    else:
+    elif args.prompt:
         text = args.prompt
+    elif not sys.stdin.isatty():
+        text = sys.stdin.read()
+    else:
+        console.print("[red]Error:[/red] provide a prompt, --file, or pipe text via stdin.")
+        sys.exit(1)
 
     optimizer = Optimizer(conservative=args.conservative)
 
