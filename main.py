@@ -131,7 +131,8 @@ def main() -> None:
 
     if args.file:
         try:
-            text = open(args.file).read()
+            with open(args.file) as f:
+                text = f.read()
         except OSError as e:
             console.print(f"[red]Error reading file:[/red] {e}")
             sys.exit(1)
@@ -155,7 +156,8 @@ def main() -> None:
 
     if args.output:
         try:
-            open(args.output, "w").write(result.optimized_text)
+            with open(args.output, "w") as f:
+                f.write(result.optimized_text)
             console.print(f"[green]Saved to[/green] {args.output}")
         except OSError as e:
             console.print(f"[red]Error writing output:[/red] {e}")
