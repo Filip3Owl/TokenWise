@@ -5,10 +5,7 @@ import re
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import sent_tokenize, word_tokenize
-
-_LEMMATIZER = WordNetLemmatizer()
 
 # Words that look like stopwords but carry semantic weight in prompts
 _KEEP_EN = {
@@ -44,15 +41,6 @@ def remove_stopwords(text: str, lang: str = "en") -> str:
         filtered = [w for w in words if w.lower() not in effective or not w.isalpha()]
         result.append(" ".join(filtered))
     return " ".join(result)
-
-
-def lemmatize(text: str, lang: str = "en") -> str:
-    # Lemmatization only supported for English via NLTK WordNet
-    if lang != "en":
-        return text
-    words = word_tokenize(text)
-    lemmatized = [_LEMMATIZER.lemmatize(w) if w.isalpha() else w for w in words]
-    return " ".join(lemmatized)
 
 
 def remove_redundant_phrases(text: str, lang: str = "en") -> str:

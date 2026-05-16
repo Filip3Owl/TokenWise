@@ -1,6 +1,5 @@
 from optimizer.nlp import (
     remove_stopwords,
-    lemmatize,
     remove_redundant_phrases,
     collapse_whitespace,
 )
@@ -16,11 +15,6 @@ def test_remove_stopwords_keeps_negations():
     text = "Do not remove this word."
     result = remove_stopwords(text)
     assert "not" in result
-
-
-def test_lemmatize_normalizes_plural():
-    result = lemmatize("The running dogs are barking loudly.")
-    assert "dog" in result
 
 
 def test_remove_redundant_phrases_deduplicates():
