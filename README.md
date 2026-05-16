@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Codex-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-57%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-75%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -36,7 +36,6 @@ Each prompt runs through five strategies in sequence, followed by a post-process
 | 2 | `verbose_phrases` | Replaces wordy expressions — patterns for EN and PT |
 | 3 | `redundancy_removal` | Eliminates duplicate sentences |
 | 4 | `stopword_removal` | Drops low-value function words (NLTK) |
-| 5 | `lemmatization` | Normalizes inflected word forms (English only) |
 | ✦ | `postprocessor` | Fixes punctuation spacing, capitalization, and apostrophes |
 
 Two built-in presets: **default** (all strategies) and **conservative** (whitespace + verbose phrases + redundancy only).
@@ -50,7 +49,6 @@ Language is detected automatically via `langdetect`. Use `--lang` to override.
 | Stopword removal | ✓ 179 words | ✓ 207 words |
 | Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns |
 | Redundancy removal | ✓ | ✓ |
-| Lemmatization | ✓ NLTK WordNet | — |
 
 ## Installation
 
@@ -90,50 +88,35 @@ tokenwise --file prompt.txt --output optimized.txt
 
 # Print only the result, no report
 tokenwise --no-report "your prompt here"
+
+# Pipe text via stdin
+echo "your prompt here" | tokenwise
+cat prompt.txt | tokenwise
 ```
 
 ## Example output
 
-**English:**
 ```
 ╭────────────────────────────── TokenWise Report ──────────────────────────────╮
-│ Model: claude-sonnet-4-6  Language: English  Price: $3.0/M tokens            │
-│ Tokens: 21 → 7  Saved: 14 (66.7%)                                            │
-│ Cost:   $0.000063 → $0.000021  Saved: $0.000042 (66.7%)                      │
+│                                                                              │
+│  Model     claude   Language  English   Price     $3.00/M tokens             │
+│                                                                              │
+│  Tokens   41 → 20       Cost     $0.000123 → $0.000060                       │
+│  Saved    21 (51.2%)    Saved    $0.000063 (51.2%)                           │
+│                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-
-  Strategy              Tokens saved    Status
- ────────────────────────────────────────────────
-  whitespace_collapse              0   no change
-  verbose_phrases                 10   applied
-  redundancy_removal               0   no change
-  stopword_removal                 4   applied
-  lemmatization                    0   no change
-
-──────────────────────────── Optimized Prompt ──────────────────────────────
-Use feature, should help user.
-────────────────────────────────────────────────────────────────────────────
-```
-
-**Portuguese:**
-```
-╭────────────────────────────── TokenWise Report ──────────────────────────────╮
-│ Model: claude-sonnet-4-6  Language: Português  Price: $3.0/M tokens          │
-│ Tokens: 21 → 14  Saved: 7 (33.3%)                                            │
-│ Cost:   $0.000063 → $0.000042  Saved: $0.000021 (33.3%)                      │
+ Strategy                 Savings            Tokens     Status
+─────────────────────────────────────────────────────────────────
+ Whitespace Collapse      ░░░░░░░░░░░░░░░░        —   no change
+ Verbose Phrases          ███████████████░      -10    applied
+ Redundancy Removal       ░░░░░░░░░░░░░░░░        —   no change
+ Stopword Removal         ████████████████      -11    applied
+╭────────────────────────────── Optimized Prompt ──────────────────────────────╮
+│                                                                              │
+│  Achieve best results, use all available resources help team members         │
+│  unable complete tasks lack necessary experience.                            │
+│                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-
-  Strategy              Tokens saved    Status
- ────────────────────────────────────────────────
-  whitespace_collapse              0   no change
-  verbose_phrases                  3   applied
-  redundancy_removal               0   no change
-  stopword_removal                 4   applied
-  lemmatization                    0   no change
-
-──────────────────────────── Optimized Prompt ──────────────────────────────
-Utilizar recurso, favor forneça assistência usuário sistema.
-────────────────────────────────────────────────────────────────────────────
 ```
 
 ## Supported Models
@@ -157,7 +140,7 @@ Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resol
 python -m pytest tests/ -v
 ```
 
-57 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, and optimizer pipeline.
+75 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, and CLI integration.
 
 ## Project Structure
 
@@ -178,6 +161,17 @@ TokenWise/
 ├── pyproject.toml
 └── requirements.txt
 ```
+
+## Roadmap
+
+### In progress
+- `POST /optimize` REST API endpoint (FastAPI) — so any app can optimize prompts via HTTP
+
+### Planned
+- `POST /chat` proxy endpoint — TokenWise optimizes the prompt and forwards to Claude/GPT, returning the LLM response
+- `--json` flag — machine-readable output for scripting
+- `--diff` flag — show exactly what changed between original and optimized
+- Spanish (`es`) language support
 
 ## License
 
