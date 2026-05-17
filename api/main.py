@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Depends
 
 from optimizer.core import Optimizer
+from .auth import require_auth
 from .schemas import OptimizeRequest, OptimizeResponse, StrategyResultResponse
 
 app = FastAPI(
@@ -17,7 +17,7 @@ def health():
 
 
 @app.post("/optimize", response_model=OptimizeResponse)
-def optimize(request: OptimizeRequest):
+def optimize(request: OptimizeRequest, _: None = Depends(require_auth)):
     try:
         optimizer = Optimizer(conservative=request.conservative)
         result = optimizer.optimize(request.text, model=request.model, lang=request.lang)
