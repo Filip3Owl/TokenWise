@@ -1,8 +1,26 @@
-from fastapi import FastAPI, HTTPException, Depends
+"""
+TokenWise FastAPI application.
+
+Exposes the NLP-powered prompt optimizer as a REST API so that any service
+can reduce its LLM token costs without changing its own codebase.
+
+Endpoints:
+    GET  /health    — liveness check
+    POST /optimize  — optimize a prompt and return token/cost savings
+"""
+
+from fastapi import FastAPI, HTTPException, Depends, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from optimizer.core import Optimizer
 from .auth import require_auth
 from .schemas import OptimizeRequest, OptimizeResponse, StrategyResultResponse
+
+# Rate limiter keyed by client IP address.
+# In-memory storage is used here; replace with Redis for multi-process deployments.
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="TokenWise API",
@@ -10,17 +28,34 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Register the limiter and its 429 error handler with the app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.get("/health")
 def health():
+    """Liveness check — returns 200 OK when the server is running."""
     return {"status": "ok"}
 
 
 @app.post("/optimize", response_model=OptimizeResponse)
-def optimize(request: OptimizeRequest, _: None = Depends(require_auth)):
+@limiter.limit("60/minute")
+def optimize(request: Request, body: OptimizeRequest, _: None = Depends(require_auth)):
+    """
+    Optimize a prompt to reduce token consumption.
+
+    Applies a pipeline of NLP strategies (whitespace collapse, verbose phrase
+    replacement, redundancy removal, stopword removal) and returns the optimized
+    text along with token counts, cost estimates, and a per-strategy breakdown.
+
+    Rate limit: 60 requests per minute per IP.
+    Authentication: Bearer token required (TOKENWISE_API_KEY).
+    """
     try:
-        optimizer = Optimizer(conservative=request.conservative)
-        result = optimizer.optimize(request.text, model=request.model, lang=request.lang)
+        # Build the optimizer with the requested preset (default or conservative)
+        optimizer = Optimizer(conservative=body.conservative)
+        result = optimizer.optimize(body.text, model=body.model, lang=body.lang)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
