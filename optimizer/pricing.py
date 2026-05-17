@@ -22,6 +22,7 @@ _PRICES: dict[str, ModelPrice] = {
     "text-davinci-003":         ModelPrice(2.00,   2.00),
     "code-davinci-002":         ModelPrice(2.00,   2.00),
     # Google Gemini
+    "gemini-3-flash-preview":   ModelPrice(0.50,   3.00),
     "gemini-2.0-flash":         ModelPrice(0.10,   0.40),
     "gemini-1.5-flash":         ModelPrice(0.075,  0.30),
     "gemini-1.5-pro":           ModelPrice(1.25,   5.00),
@@ -40,10 +41,11 @@ _PREFIX_FALLBACKS: list[tuple[str, str]] = [
     ("codex",         "text-davinci-003"),
     ("text-davinci",  "text-davinci-003"),
     # Gemini — most specific prefixes first
-    ("gemini-2.0",    "gemini-2.0-flash"),
+    ("gemini-3",         "gemini-3-flash-preview"),
+    ("gemini-2.0",       "gemini-2.0-flash"),
     ("gemini-1.5-flash", "gemini-1.5-flash"),
     ("gemini-1.5-pro",   "gemini-1.5-pro"),
-    ("gemini",        "gemini-1.5-flash"),
+    ("gemini",           "gemini-1.5-flash"),
 ]
 
 
