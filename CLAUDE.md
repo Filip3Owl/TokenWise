@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Codex). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
-The REST API (FastAPI) is built — customer service AI apps can connect to TokenWise as a middleware before calling the LLM, optimizing prompts transparently and reducing costs. Next step is the proxy endpoint (Phase B).
+Phases A and B are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic or OpenAI, returning the LLM response alongside savings metadata. Protected by Bearer token auth and rate limiting (60 req/min per IP).
 
 ## Environment
 
@@ -15,7 +15,7 @@ source venv/bin/activate   # activate before running anything
 pip install -e .           # install package + dependencies (editable mode)
 ```
 
-Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fastapi`, `uvicorn`
+Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fastapi`, `uvicorn`, `slowapi`, `httpx`
 
 ## Commands
 
@@ -31,6 +31,11 @@ echo "prompt" | tokenwise            # stdin pipe
 # Run the REST API
 uvicorn api.main:app --reload          # http://127.0.0.1:8000
 # Swagger UI: http://127.0.0.1:8000/docs
+
+# Required environment variables (copy .env.example to .env and fill in)
+# TOKENWISE_API_KEY  — Bearer token that clients must send (generate with secrets.token_urlsafe(32))
+# ANTHROPIC_API_KEY  — required for POST /chat with claude-* models
+# OPENAI_API_KEY     — required for POST /chat with gpt-* models
 
 # Run tests
 python -m pytest tests/ -v
@@ -50,8 +55,11 @@ nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('rslp')
 ```
 main.py                — CLI entry point (argparse + rich), calls Optimizer
 api/
-  main.py              — FastAPI app: GET /health, POST /optimize
-  schemas.py           — Pydantic models: OptimizeRequest, OptimizeResponse
+  main.py              — FastAPI app: GET /health, POST /optimize, POST /chat
+  auth.py              — Bearer token authentication dependency
+  config.py            — Central config: MAX_PROMPT_CHARS, LLM_TIMEOUT_SECONDS
+  llm.py               — Upstream LLM client: Anthropic + OpenAI via httpx
+  schemas.py           — Pydantic models: OptimizeRequest/Response, ChatRequest/Response
 optimizer/
   core.py              — Optimizer class: language detection + strategy pipeline
   tokenizer.py         — Token counting via tiktoken (model-aware)
@@ -70,7 +78,7 @@ tests/
   test_lang.py
   test_codeblock.py
   test_cli.py          — CLI integration tests (--conservative, --output, --file, stdin)
-  test_api.py          — API integration tests (TestClient)
+  test_api.py          — API integration tests: /optimize, /chat (mocked LLM), auth, rate limit
 pyproject.toml         — package entry point: tokenwise = "main:main"
 requirements.txt
 ```
@@ -119,14 +127,18 @@ Token counts are always model-specific; never use character-based estimates.
 ## Roadmap
 
 ### Done: REST API (Phase A) ✓
-`POST /optimize` FastAPI endpoint wrapping the `Optimizer` class.
-- Entry point: `api/main.py`
-- Request: `{ "text": "...", "model": "claude-sonnet-4-6", "lang": "auto", "conservative": false }`
-- Response: `OptimizationResult` serialized as JSON (tokens, costs, savings %, per-strategy breakdown)
-- Swagger UI auto-generated at `/docs`
+`POST /optimize` — optimizes a prompt and returns token/cost savings. No LLM call.
 
-### Next: Proxy endpoint (Phase B)
-`POST /chat` — TokenWise optimizes the prompt and forwards to the LLM (Claude/GPT), returning the response. Enables transparent cost reduction for any app that connects to it as middleware.
+### Done: Proxy endpoint (Phase B) ✓
+`POST /chat` — optimizes the prompt and forwards it to Anthropic or OpenAI, returning the LLM response + savings metadata.
+- Bearer token auth (`TOKENWISE_API_KEY`)
+- Rate limiting: 60 req/min per IP (`slowapi`)
+- Payload cap: 10,000 characters
+- LLM timeout: 30 seconds (`httpx`)
+- Supports `claude-*` (Anthropic) and `gpt-*` (OpenAI)
+
+### Next: Multi-tenant auth (Phase C)
+Per-client API tokens with individual rate limits stored in a database. Enables different plans (basic/pro) and per-client revocation.
 
 ### Other planned features
 - `--json` CLI flag — machine-readable output

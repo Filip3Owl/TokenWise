@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Codex-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-82%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-94%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -136,47 +136,97 @@ Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resol
 
 ## REST API
 
-TokenWise exposes a FastAPI endpoint so any app can optimize prompts over HTTP.
+TokenWise exposes a FastAPI server so any app can optimize prompts — or use it as a transparent LLM proxy — over HTTP.
 
 ```bash
+# Copy and fill in your keys
+cp .env.example .env
+
+# Start the server
 uvicorn api.main:app --reload
 ```
 
 Interactive docs available at `http://127.0.0.1:8000/docs`.
 
-**`POST /optimize`**
+All endpoints except `/health` require a Bearer token:
+```
+Authorization: Bearer <your-TOKENWISE_API_KEY>
+```
+
+---
+
+**`POST /optimize`** — optimize a prompt without calling any LLM.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/optimize \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "In order to be able to help you, I need more information."}'
+```
+
+```json
+{
+  "optimized_text": "Help you, need more information.",
+  "original_tokens": 16,
+  "final_tokens": 7,
+  "tokens_saved": 9,
+  "savings_pct": 56.25,
+  "original_cost": 0.000048,
+  "final_cost": 0.000021,
+  "cost_saved": 0.000027,
+  "cost_savings_pct": 56.25,
+  "model": "claude-sonnet-4-6",
+  "lang": "en",
+  "strategies": [...]
+}
+```
+
+---
+
+**`POST /chat`** — optimize and forward to the upstream LLM, returning its response.
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"text": "In order to be able to help you, I need more information.", "model": "claude-sonnet-4-6"}'
 ```
 
 ```json
 {
+  "llm_response": "Of course! Could you tell me a bit more about what you need?",
   "original_tokens": 16,
   "final_tokens": 7,
   "tokens_saved": 9,
   "savings_pct": 56.25,
-  "optimized_text": "Help you, need more information.",
   "model": "claude-sonnet-4-6",
-  "lang": "en",
-  "original_cost": 0.000048,
-  "final_cost": 0.000021,
-  "cost_saved": 0.000027,
-  "cost_savings_pct": 56.25,
-  "strategies": [...]
+  "lang": "en"
 }
 ```
 
+Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires `OPENAI_API_KEY`)
+
+---
+
+**`GET /health`** — returns `{"status": "ok"}`.
+
+### Request fields
+
 | Field | Description |
 |---|---|
-| `text` | Prompt to optimize (required) |
+| `text` | Prompt to optimize — max 10,000 characters (required) |
 | `model` | Target model (default: `claude-sonnet-4-6`) |
 | `lang` | `"auto"`, `"en"`, or `"pt"` (default: `"auto"`) |
 | `conservative` | Skip stopword removal (default: `false`) |
 
-**`GET /health`** — returns `{"status": "ok"}`.
+### Security
+
+| Protection | Detail |
+|---|---|
+| Authentication | Bearer token (`TOKENWISE_API_KEY`) |
+| Rate limiting | 60 requests / minute per IP |
+| Payload cap | 10,000 characters max |
+| LLM timeout | 30 seconds |
 
 ## Running Tests
 
@@ -184,14 +234,17 @@ curl -X POST http://127.0.0.1:8000/optimize \
 python -m pytest tests/ -v
 ```
 
-82 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, and REST API.
+94 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, REST API (auth, rate limiting, payload limit, `/optimize`, `/chat` with mocked LLM).
 
 ## Project Structure
 
 ```
 TokenWise/
 ├── api/
-│   ├── main.py            # FastAPI app: GET /health, POST /optimize
+│   ├── main.py            # FastAPI app: GET /health, POST /optimize, POST /chat
+│   ├── auth.py            # Bearer token authentication dependency
+│   ├── config.py          # Central config: payload limit, LLM timeout
+│   ├── llm.py             # Upstream LLM client (Anthropic + OpenAI)
 │   └── schemas.py         # Pydantic request/response models
 ├── optimizer/
 │   ├── core.py            # Optimizer pipeline + language detection
@@ -213,9 +266,11 @@ TokenWise/
 
 ### Done
 - `POST /optimize` REST API endpoint (FastAPI) ✓
+- `POST /chat` proxy endpoint — optimizes and forwards to Claude/GPT ✓
+- Bearer token auth + rate limiting + payload cap + LLM timeout ✓
 
 ### Next
-- `POST /chat` proxy endpoint — TokenWise optimizes the prompt and forwards to Claude/GPT, returning the LLM response
+- Per-client API tokens with individual rate limits (Phase C)
 
 ### Planned
 - `--json` flag — machine-readable output for scripting
