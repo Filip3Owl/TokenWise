@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Codex-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-75%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-82%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -134,18 +134,65 @@ cat prompt.txt | tokenwise
 
 Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resolve automatically.
 
+## REST API
+
+TokenWise exposes a FastAPI endpoint so any app can optimize prompts over HTTP.
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Interactive docs available at `http://127.0.0.1:8000/docs`.
+
+**`POST /optimize`**
+
+```bash
+curl -X POST http://127.0.0.1:8000/optimize \
+  -H "Content-Type: application/json" \
+  -d '{"text": "In order to be able to help you, I need more information.", "model": "claude-sonnet-4-6"}'
+```
+
+```json
+{
+  "original_tokens": 16,
+  "final_tokens": 7,
+  "tokens_saved": 9,
+  "savings_pct": 56.25,
+  "optimized_text": "Help you, need more information.",
+  "model": "claude-sonnet-4-6",
+  "lang": "en",
+  "original_cost": 0.000048,
+  "final_cost": 0.000021,
+  "cost_saved": 0.000027,
+  "cost_savings_pct": 56.25,
+  "strategies": [...]
+}
+```
+
+| Field | Description |
+|---|---|
+| `text` | Prompt to optimize (required) |
+| `model` | Target model (default: `claude-sonnet-4-6`) |
+| `lang` | `"auto"`, `"en"`, or `"pt"` (default: `"auto"`) |
+| `conservative` | Skip stopword removal (default: `false`) |
+
+**`GET /health`** — returns `{"status": "ok"}`.
+
 ## Running Tests
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-75 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, and CLI integration.
+82 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, and REST API.
 
 ## Project Structure
 
 ```
 TokenWise/
+├── api/
+│   ├── main.py            # FastAPI app: GET /health, POST /optimize
+│   └── schemas.py         # Pydantic request/response models
 ├── optimizer/
 │   ├── core.py            # Optimizer pipeline + language detection
 │   ├── strategies.py      # Pluggable strategies with EN/PT phrase lists
@@ -164,11 +211,13 @@ TokenWise/
 
 ## Roadmap
 
-### In progress
-- `POST /optimize` REST API endpoint (FastAPI) — so any app can optimize prompts via HTTP
+### Done
+- `POST /optimize` REST API endpoint (FastAPI) ✓
+
+### Next
+- `POST /chat` proxy endpoint — TokenWise optimizes the prompt and forwards to Claude/GPT, returning the LLM response
 
 ### Planned
-- `POST /chat` proxy endpoint — TokenWise optimizes the prompt and forwards to Claude/GPT, returning the LLM response
 - `--json` flag — machine-readable output for scripting
 - `--diff` flag — show exactly what changed between original and optimized
 - Spanish (`es`) language support

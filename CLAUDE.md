@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Python CLI tool that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Codex). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
+Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Codex). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
-The project is evolving into a REST API (FastAPI) so that customer service AI apps can connect to TokenWise as a middleware before calling the LLM — optimizing prompts transparently and reducing costs.
+The REST API (FastAPI) is built — customer service AI apps can connect to TokenWise as a middleware before calling the LLM, optimizing prompts transparently and reducing costs. Next step is the proxy endpoint (Phase B).
 
 ## Environment
 
@@ -15,7 +15,7 @@ source venv/bin/activate   # activate before running anything
 pip install -e .           # install package + dependencies (editable mode)
 ```
 
-Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`
+Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fastapi`, `uvicorn`
 
 ## Commands
 
@@ -27,6 +27,10 @@ tokenwise --lang pt "Seu prompt aqui"
 tokenwise --conservative "prompt"
 tokenwise --no-report "prompt"
 echo "prompt" | tokenwise            # stdin pipe
+
+# Run the REST API
+uvicorn api.main:app --reload          # http://127.0.0.1:8000
+# Swagger UI: http://127.0.0.1:8000/docs
 
 # Run tests
 python -m pytest tests/ -v
@@ -45,6 +49,9 @@ nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('rslp')
 
 ```
 main.py                — CLI entry point (argparse + rich), calls Optimizer
+api/
+  main.py              — FastAPI app: GET /health, POST /optimize
+  schemas.py           — Pydantic models: OptimizeRequest, OptimizeResponse
 optimizer/
   core.py              — Optimizer class: language detection + strategy pipeline
   tokenizer.py         — Token counting via tiktoken (model-aware)
@@ -63,6 +70,7 @@ tests/
   test_lang.py
   test_codeblock.py
   test_cli.py          — CLI integration tests (--conservative, --output, --file, stdin)
+  test_api.py          — API integration tests (TestClient)
 pyproject.toml         — package entry point: tokenwise = "main:main"
 requirements.txt
 ```
@@ -110,15 +118,15 @@ Token counts are always model-specific; never use character-based estimates.
 
 ## Roadmap
 
-### Next: REST API (Phase A)
-Build a `POST /optimize` FastAPI endpoint that wraps the existing `Optimizer` class.
-- Framework: **FastAPI**
+### Done: REST API (Phase A) ✓
+`POST /optimize` FastAPI endpoint wrapping the `Optimizer` class.
 - Entry point: `api/main.py`
-- Request: `{ "text": "...", "model": "claude", "lang": "auto", "conservative": false }`
-- Response: `OptimizationResult` serialized as JSON
+- Request: `{ "text": "...", "model": "claude-sonnet-4-6", "lang": "auto", "conservative": false }`
+- Response: `OptimizationResult` serialized as JSON (tokens, costs, savings %, per-strategy breakdown)
+- Swagger UI auto-generated at `/docs`
 
-### Future: Proxy endpoint (Phase B)
-`POST /chat` — TokenWise optimizes the prompt and forwards to the LLM (Claude/GPT), returning the response. Enables transparent cost reduction for any app that connects to it.
+### Next: Proxy endpoint (Phase B)
+`POST /chat` — TokenWise optimizes the prompt and forwards to the LLM (Claude/GPT), returning the response. Enables transparent cost reduction for any app that connects to it as middleware.
 
 ### Other planned features
 - `--json` CLI flag — machine-readable output
