@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
+from api.config import MAX_PROMPT_CHARS
 
 client = TestClient(app)
 
@@ -100,6 +101,13 @@ def test_optimize_custom_model():
 
 def test_optimize_empty_text():
     response = client.post("/optimize", json={"text": ""}, headers=AUTH_HEADER)
+    assert response.status_code == 422
+
+
+def test_optimize_oversized_payload_returns_422():
+    # Generate a prompt that exceeds the character limit
+    oversized_text = "a" * (MAX_PROMPT_CHARS + 1)
+    response = client.post("/optimize", json={"text": oversized_text}, headers=AUTH_HEADER)
     assert response.status_code == 422
 
 

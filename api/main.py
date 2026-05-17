@@ -7,6 +7,7 @@ can reduce its LLM token costs without changing its own codebase.
 Endpoints:
     GET  /health    — liveness check
     POST /optimize  — optimize a prompt and return token/cost savings
+    POST /chat      — (Phase B) optimize and forward to upstream LLM
 """
 
 from fastapi import FastAPI, HTTPException, Depends, Request
@@ -16,6 +17,7 @@ from slowapi.errors import RateLimitExceeded
 
 from optimizer.core import Optimizer
 from .auth import require_auth
+from .config import LLM_TIMEOUT_SECONDS
 from .schemas import OptimizeRequest, OptimizeResponse, StrategyResultResponse
 
 # Rate limiter keyed by client IP address.

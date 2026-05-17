@@ -7,12 +7,14 @@ Pydantic validates incoming JSON automatically and serializes responses.
 
 from pydantic import BaseModel, Field
 
+from .config import MAX_PROMPT_CHARS
+
 
 class OptimizeRequest(BaseModel):
     """Payload for POST /optimize."""
 
-    # The prompt text to be optimized — must not be empty
-    text: str = Field(..., min_length=1)
+    # Enforce a character cap to prevent oversized payloads from consuming LLM quota
+    text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
 
     # Target LLM model; used for token counting and cost calculation
     model: str = "claude-sonnet-4-6"
