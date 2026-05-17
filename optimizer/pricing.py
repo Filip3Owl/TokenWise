@@ -21,6 +21,10 @@ _PRICES: dict[str, ModelPrice] = {
     # Codex / legacy
     "text-davinci-003":         ModelPrice(2.00,   2.00),
     "code-davinci-002":         ModelPrice(2.00,   2.00),
+    # Google Gemini
+    "gemini-2.0-flash":         ModelPrice(0.10,   0.40),
+    "gemini-1.5-flash":         ModelPrice(0.075,  0.30),
+    "gemini-1.5-pro":           ModelPrice(1.25,   5.00),
 }
 
 # Prefix fallbacks when no exact match is found
@@ -35,6 +39,11 @@ _PREFIX_FALLBACKS: list[tuple[str, str]] = [
     ("gpt-3.5",       "gpt-3.5-turbo"),
     ("codex",         "text-davinci-003"),
     ("text-davinci",  "text-davinci-003"),
+    # Gemini — most specific prefixes first
+    ("gemini-2.0",    "gemini-2.0-flash"),
+    ("gemini-1.5-flash", "gemini-1.5-flash"),
+    ("gemini-1.5-pro",   "gemini-1.5-pro"),
+    ("gemini",        "gemini-1.5-flash"),
 ]
 
 

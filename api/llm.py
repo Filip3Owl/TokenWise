@@ -1,7 +1,7 @@
 """
 Upstream LLM client for the TokenWise proxy (POST /chat).
 
-Supports Anthropic (claude-*) and OpenAI (gpt-*) models.
+Supports Anthropic (claude-*), OpenAI (gpt-*), and Google Gemini (gemini-*) models.
 The appropriate client is selected automatically based on the model name prefix.
 API keys are read from environment variables — never hardcoded.
 """
@@ -33,10 +33,12 @@ def call_llm(prompt: str, model: str) -> str:
         return _call_anthropic(prompt, model)
     elif model.startswith("gpt") or model.startswith("o1"):
         return _call_openai(prompt, model)
+    elif model.startswith("gemini"):
+        return _call_gemini(prompt, model)
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported model '{model}'. Use a claude-* or gpt-* model.",
+            detail=f"Unsupported model '{model}'. Use a claude-*, gpt-*, or gemini-* model.",
         )
 
 
@@ -124,3 +126,47 @@ def _call_openai(prompt: str, model: str) -> str:
     # Extract the text from the first choice of the response
     data = response.json()
     return data["choices"][0]["message"]["content"]
+
+
+def _call_gemini(prompt: str, model: str) -> str:
+    """
+    Call the Google Gemini generateContent API and return the model's text response.
+
+    Uses the REST API directly via httpx — no SDK dependency required.
+    Requires GOOGLE_API_KEY to be set in the environment.
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY", "")
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="GOOGLE_API_KEY is not configured on the server.",
+        )
+
+    # Gemini REST endpoint: model name is part of the URL path
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+    }
+
+    try:
+        response = httpx.post(
+            url,
+            params={"key": api_key},
+            json=payload,
+            timeout=LLM_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Gemini API did not respond within {LLM_TIMEOUT_SECONDS}s.",
+        )
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini API error: {exc.response.status_code} — {exc.response.text}",
+        )
+
+    # Extract the text from the first candidate's first part
+    data = response.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]

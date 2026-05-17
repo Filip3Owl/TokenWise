@@ -146,6 +146,18 @@ def test_chat_gpt_returns_200(monkeypatch):
     assert response.json()["llm_response"] == MOCK_LLM_RESPONSE
 
 
+def test_chat_gemini_returns_200(monkeypatch):
+    # Verify that Gemini models are routed correctly through the same endpoint
+    monkeypatch.setattr("api.main.call_llm", lambda prompt, model: MOCK_LLM_RESPONSE)
+    response = client.post(
+        "/chat",
+        json={"text": "Explain recursion in simple terms.", "model": "gemini-1.5-flash"},
+        headers=AUTH_HEADER,
+    )
+    assert response.status_code == 200
+    assert response.json()["llm_response"] == MOCK_LLM_RESPONSE
+
+
 def test_chat_no_token_returns_401():
     response = client.post("/chat", json={"text": "Hello world."})
     assert response.status_code == 401

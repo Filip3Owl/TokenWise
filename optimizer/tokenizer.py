@@ -6,6 +6,9 @@ _MODEL_ENCODING: dict[str, str] = {
     "gpt-3.5": "cl100k_base",
     "codex": "p50k_base",
     "text-davinci": "p50k_base",
+    # Gemini uses a different tokenizer internally, but cl100k_base is a close
+    # enough approximation for cost estimation purposes
+    "gemini": "cl100k_base",
 }
 
 
