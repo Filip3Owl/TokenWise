@@ -7,4 +7,5 @@ rich>=14.0
 fastapi>=0.115
 uvicorn[standard]>=0.34
 httpx>=0.28
+slowapi>=0.1.9
 pytest>=8.0
