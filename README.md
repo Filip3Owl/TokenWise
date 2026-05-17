@@ -10,7 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.14-blue?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Codex-6366f1?style=flat-square"/>
+  <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Gemini-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/tests-94%20passing-brightgreen?style=flat-square"/>
 </p>
@@ -123,16 +123,34 @@ cat prompt.txt | tokenwise
 
 | Model | Input price |
 |---|---|
+**Anthropic**
+
+| Model | Input price |
+|---|---|
 | `claude-opus-4-7` | $15.00 / 1M tokens |
 | `claude-sonnet-4-6` | $3.00 / 1M tokens |
 | `claude-haiku-4-5` | $0.80 / 1M tokens |
+
+**OpenAI**
+
+| Model | Input price |
+|---|---|
 | `gpt-4o` | $2.50 / 1M tokens |
 | `gpt-4` | $30.00 / 1M tokens |
 | `gpt-4o-mini` | $0.15 / 1M tokens |
 | `gpt-3.5-turbo` | $0.50 / 1M tokens |
 | `codex` / `text-davinci` | $2.00 / 1M tokens |
 
-Prefix matching is supported — `claude`, `gpt-4`, `gpt-3.5`, `codex` all resolve automatically.
+**Google Gemini**
+
+| Model | Input price |
+|---|---|
+| `gemini-3-flash-preview` | $0.50 / 1M tokens |
+| `gemini-2.0-flash` | $0.10 / 1M tokens |
+| `gemini-1.5-flash` | $0.075 / 1M tokens |
+| `gemini-1.5-pro` | $1.25 / 1M tokens |
+
+Prefix matching is supported — `claude`, `gpt-4`, `gemini-3`, `gemini` all resolve automatically.
 
 ## REST API
 
@@ -204,7 +222,7 @@ curl -X POST http://127.0.0.1:8000/chat \
 }
 ```
 
-Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires `OPENAI_API_KEY`)
+Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires `OPENAI_API_KEY`) · `gemini-*` (requires `GOOGLE_API_KEY`)
 
 ---
 

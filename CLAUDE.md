@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Codex). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
+Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Gemini). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
-Phases A and B are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic or OpenAI, returning the LLM response alongside savings metadata. Protected by Bearer token auth and rate limiting (60 req/min per IP).
+Phases A and B are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic, OpenAI, or Google Gemini, returning the LLM response alongside savings metadata. Protected by Bearer token auth and rate limiting (60 req/min per IP).
 
 ## Environment
 
@@ -36,6 +36,7 @@ uvicorn api.main:app --reload          # http://127.0.0.1:8000
 # TOKENWISE_API_KEY  — Bearer token that clients must send (generate with secrets.token_urlsafe(32))
 # ANTHROPIC_API_KEY  — required for POST /chat with claude-* models
 # OPENAI_API_KEY     — required for POST /chat with gpt-* models
+# GOOGLE_API_KEY     — required for POST /chat with gemini-* models
 
 # Run tests
 python -m pytest tests/ -v
@@ -58,7 +59,7 @@ api/
   main.py              — FastAPI app: GET /health, POST /optimize, POST /chat
   auth.py              — Bearer token authentication dependency
   config.py            — Central config: MAX_PROMPT_CHARS, LLM_TIMEOUT_SECONDS
-  llm.py               — Upstream LLM client: Anthropic + OpenAI via httpx
+  llm.py               — Upstream LLM client: Anthropic + OpenAI + Google Gemini via httpx
   schemas.py           — Pydantic models: OptimizeRequest/Response, ChatRequest/Response
 optimizer/
   core.py              — Optimizer class: language detection + strategy pipeline
