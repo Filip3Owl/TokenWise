@@ -18,7 +18,8 @@ from slowapi.errors import RateLimitExceeded
 from optimizer.core import Optimizer
 from .auth import require_auth
 from .config import LLM_TIMEOUT_SECONDS
-from .schemas import OptimizeRequest, OptimizeResponse, StrategyResultResponse
+from .llm import call_llm
+from .schemas import OptimizeRequest, OptimizeResponse, StrategyResultResponse, ChatRequest, ChatResponse
 
 # Rate limiter keyed by client IP address.
 # In-memory storage is used here; replace with Redis for multi-process deployments.
@@ -82,4 +83,44 @@ def optimize(request: Request, body: OptimizeRequest, _: None = Depends(require_
             )
             for s in result.strategy_results
         ],
+    )
+
+
+@app.post("/chat", response_model=ChatResponse)
+@limiter.limit("60/minute")
+def chat(request: Request, body: ChatRequest, _: None = Depends(require_auth)):
+    """
+    Optimize a prompt and forward it to the upstream LLM.
+
+    This is the TokenWise proxy endpoint. The caller sends a prompt; TokenWise
+    optimizes it, calls the appropriate LLM (Anthropic or OpenAI), and returns
+    the LLM response alongside the optimization savings metadata.
+
+    Supported models:
+        - claude-* → Anthropic Messages API (requires ANTHROPIC_API_KEY)
+        - gpt-*    → OpenAI Chat Completions API (requires OPENAI_API_KEY)
+
+    Rate limit: 60 requests per minute per IP.
+    Authentication: Bearer token required (TOKENWISE_API_KEY).
+    """
+    # Step 1: optimize the prompt using the same pipeline as /optimize
+    optimizer = Optimizer(conservative=body.conservative)
+    result = optimizer.optimize(body.text, model=body.model, lang=body.lang)
+
+    # Step 2: forward the optimized prompt to the upstream LLM
+    # call_llm raises HTTPException on timeout, auth failure, or unsupported model
+    llm_response = call_llm(result.optimized_text, model=body.model)
+
+    return ChatResponse(
+        llm_response=llm_response,
+        original_tokens=result.original_tokens,
+        final_tokens=result.final_tokens,
+        tokens_saved=result.tokens_saved,
+        savings_pct=round(result.savings_pct, 2),
+        original_cost=result.original_cost,
+        final_cost=result.final_cost,
+        cost_saved=result.cost_saved,
+        cost_savings_pct=round(result.cost_savings_pct, 2),
+        model=result.model,
+        lang=result.lang,
     )

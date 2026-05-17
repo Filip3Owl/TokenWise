@@ -57,3 +57,38 @@ class OptimizeResponse(BaseModel):
 
     # Breakdown of what each strategy contributed
     strategies: list[StrategyResultResponse]
+
+
+class ChatRequest(BaseModel):
+    """Payload for POST /chat."""
+
+    # The prompt to optimize and forward to the upstream LLM
+    text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
+
+    # Target LLM — determines which upstream API is called (Anthropic or OpenAI)
+    model: str = "claude-sonnet-4-6"
+
+    # Language for the optimizer; "auto" triggers automatic detection
+    lang: str = "auto"
+
+    # Conservative mode skips stopword removal for safer optimization
+    conservative: bool = False
+
+
+class ChatResponse(BaseModel):
+    """Response from POST /chat — LLM reply plus optimization metadata."""
+
+    # Raw text response from the upstream LLM
+    llm_response: str
+
+    # Optimization metrics so the caller can see how much was saved
+    original_tokens: int
+    final_tokens: int
+    tokens_saved: int
+    savings_pct: float
+    original_cost: float
+    final_cost: float
+    cost_saved: float
+    cost_savings_pct: float
+    model: str
+    lang: str
