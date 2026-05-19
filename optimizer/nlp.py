@@ -17,6 +17,15 @@ _KEEP_PT = {
     "por favor", "sempre", "todo", "toda", "qualquer", "mais", "menos",
 }
 
+# Multi-word expressions that must be kept intact even if each word is a stopword
+_PROTECT_BIGRAMS_PT: set[tuple[str, str]] = {
+    ("por", "que"),   # why
+    ("por", "isso"),  # therefore
+    ("por", "fim"),   # finally
+    ("o", "que"),     # what
+    ("ao", "invés"),  # instead
+}
+
 _STOPWORDS_EN = stopwords.words("english")
 _STOPWORDS_PT = stopwords.words("portuguese")
 
@@ -34,11 +43,23 @@ _NLTK_LANG: dict[str, str] = {
 def remove_stopwords(text: str, lang: str = "en") -> str:
     nltk_lang = _NLTK_LANG.get(lang, "english")
     effective = _EFFECTIVE_STOPWORDS.get(lang, _EFFECTIVE_STOPWORDS["en"])
+    protect_bigrams = _PROTECT_BIGRAMS_PT if lang == "pt" else set()
     sentences = sent_tokenize(text, language=nltk_lang)
     result = []
     for sentence in sentences:
         words = word_tokenize(sentence, language=nltk_lang)
-        filtered = [w for w in words if w.lower() not in effective or not w.isalpha()]
+        filtered = []
+        i = 0
+        while i < len(words):
+            w = words[i]
+            if i + 1 < len(words) and (w.lower(), words[i + 1].lower()) in protect_bigrams:
+                filtered.append(w)
+                filtered.append(words[i + 1])
+                i += 2
+                continue
+            if w.lower() not in effective or not w.isalpha():
+                filtered.append(w)
+            i += 1
         result.append(" ".join(filtered))
     return " ".join(result)
 
