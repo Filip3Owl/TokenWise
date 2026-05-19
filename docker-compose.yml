@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persists the SQLite client database across container restarts
+      - tokenwise_data:/app/tokenwise.db
+    restart: unless-stopped
+
+volumes:
+  tokenwise_data:
