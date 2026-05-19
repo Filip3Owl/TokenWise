@@ -5,17 +5,20 @@ Uses stdlib sqlite3 — no additional dependency required.
 The DB file lives next to the project root (tokenwise.db).
 """
 
+import os
 import secrets
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "tokenwise.db"
+# TOKENWISE_DB_PATH env var allows Docker to point the DB to a mounted volume directory
+DB_PATH = Path(os.environ.get("TOKENWISE_DB_PATH", Path(__file__).parent.parent / "tokenwise.db"))
 
 _PLAN_LIMITS = {"basic": 60, "pro": 300}
 
 
 def init_db() -> None:
     """Create the clients table if it does not exist."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS clients (
