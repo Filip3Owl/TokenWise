@@ -12,6 +12,23 @@ client = TestClient(app)
 VALID_TOKEN = "test-secret-key"
 AUTH_HEADER = {"Authorization": f"Bearer {VALID_TOKEN}"}
 
+# Fake client record returned by the mocked DB lookup
+_FAKE_CLIENT = {
+    "id": 1,
+    "name": "test-client",
+    "token": VALID_TOKEN,
+    "plan": "basic",
+    "rate_limit": 60,
+    "is_active": True,
+    "created_at": "2026-01-01 00:00:00",
+}
+
+
+@pytest.fixture(autouse=True)
+def mock_client_auth(monkeypatch):
+    """Replace the DB lookup with an in-memory fake so tests need no SQLite file."""
+    monkeypatch.setattr("api.auth.get_client_by_token", lambda token: _FAKE_CLIENT if token == VALID_TOKEN else None)
+
 
 @pytest.fixture(autouse=True)
 def set_api_key(monkeypatch):

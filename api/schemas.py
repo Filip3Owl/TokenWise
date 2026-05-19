@@ -1,7 +1,7 @@
 """
 Pydantic schemas for the TokenWise REST API.
 
-Defines the request and response models used by the /optimize and /chat endpoints.
+Defines the request and response models used by the /optimize, /chat, and /admin endpoints.
 Pydantic validates incoming JSON automatically and serializes responses.
 """
 
@@ -10,28 +10,25 @@ from pydantic import BaseModel, Field
 from .config import MAX_PROMPT_CHARS
 
 
+# ---------------------------------------------------------------------------
+# /optimize
+# ---------------------------------------------------------------------------
+
 class OptimizeRequest(BaseModel):
     """Payload for POST /optimize."""
 
-    # Enforce a character cap to prevent oversized payloads from consuming LLM quota
     text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
-
-    # Target LLM model; used for token counting and cost calculation
     model: str = "claude-sonnet-4-6"
-
-    # Language of the prompt: "auto" triggers automatic detection via langdetect
     lang: str = "auto"
-
-    # Conservative mode skips stopword removal to preserve more of the original meaning
     conservative: bool = False
 
 
 class StrategyResultResponse(BaseModel):
     """Per-strategy breakdown included in every OptimizeResponse."""
 
-    name: str           # Human-readable strategy name
-    tokens_saved: int   # Tokens removed by this strategy (0 if not applied)
-    applied: bool       # Whether the strategy made any change
+    name: str
+    tokens_saved: int
+    applied: bool
 
 
 class OptimizeResponse(BaseModel):
@@ -39,49 +36,36 @@ class OptimizeResponse(BaseModel):
 
     original_text: str
     optimized_text: str
-
-    # Token counts before and after optimization
     original_tokens: int
     final_tokens: int
     tokens_saved: int
-    savings_pct: float      # Percentage of tokens saved (0–100)
-
+    savings_pct: float
     model: str
-    lang: str               # Resolved language ("en" or "pt")
-
-    # Estimated API cost in USD based on the model's input price per 1M tokens
+    lang: str
     original_cost: float
     final_cost: float
     cost_saved: float
     cost_savings_pct: float
-
-    # Breakdown of what each strategy contributed
     strategies: list[StrategyResultResponse]
 
+
+# ---------------------------------------------------------------------------
+# /chat
+# ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
     """Payload for POST /chat."""
 
-    # The prompt to optimize and forward to the upstream LLM
     text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
-
-    # Target LLM — determines which upstream API is called (Anthropic or OpenAI)
     model: str = "claude-sonnet-4-6"
-
-    # Language for the optimizer; "auto" triggers automatic detection
     lang: str = "auto"
-
-    # Conservative mode skips stopword removal for safer optimization
     conservative: bool = False
 
 
 class ChatResponse(BaseModel):
     """Response from POST /chat — LLM reply plus optimization metadata."""
 
-    # Raw text response from the upstream LLM
     llm_response: str
-
-    # Optimization metrics so the caller can see how much was saved
     original_tokens: int
     final_tokens: int
     tokens_saved: int
@@ -92,3 +76,35 @@ class ChatResponse(BaseModel):
     cost_savings_pct: float
     model: str
     lang: str
+
+
+# ---------------------------------------------------------------------------
+# /admin/clients
+# ---------------------------------------------------------------------------
+
+class ClientCreate(BaseModel):
+    """Payload for POST /admin/clients."""
+
+    name: str = Field(..., min_length=1, max_length=100)
+    plan: str = Field("basic", pattern="^(basic|pro)$")
+    # Optional override; if omitted the plan default is used (basic=60, pro=300)
+    rate_limit: int | None = Field(None, ge=1, le=10_000)
+
+
+class ClientUpdate(BaseModel):
+    """Payload for PATCH /admin/clients/{token}."""
+
+    plan: str | None = Field(None, pattern="^(basic|pro)$")
+    rate_limit: int | None = Field(None, ge=1, le=10_000)
+
+
+class ClientResponse(BaseModel):
+    """Client record returned by admin endpoints."""
+
+    id: int
+    name: str
+    token: str
+    plan: str
+    rate_limit: int
+    is_active: bool
+    created_at: str
