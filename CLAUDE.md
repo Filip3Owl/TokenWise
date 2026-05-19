@@ -26,6 +26,7 @@ tokenwise --file prompt.txt --model claude-sonnet-4-6
 tokenwise --lang pt "Seu prompt aqui"
 tokenwise --conservative "prompt"
 tokenwise --no-report "prompt"
+tokenwise --json "prompt"            # machine-readable JSON output
 echo "prompt" | tokenwise            # stdin pipe
 
 # Run the REST API
@@ -155,7 +156,12 @@ Per-client API tokens with individual rate limits stored in SQLite (`tokenwise.d
 - Tokens are soft-deleted on revocation (`is_active = 0`)
 - `init_db()` auto-migrates old schema (pre-hash) on startup
 
+### Done: --json CLI flag ✓
+Machine-readable JSON output for scripting and CI pipelines.
+- Fields: `model`, `lang`, `original_text`, `optimized_text`, `tokens`, `cost_usd`, `strategies`
+- Mutually exclusive with `--no-report`
+- Spinner suppressed when `--json` is active (stdout stays clean)
+
 ### Planned features
-- `--json` CLI flag — machine-readable output
 - `--diff` CLI flag — show what changed
 - Spanish (`es`) language support

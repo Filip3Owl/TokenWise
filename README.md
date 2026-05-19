@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Gemini-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-111%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-114%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -88,6 +88,9 @@ tokenwise --file prompt.txt --output optimized.txt
 
 # Print only the result, no report
 tokenwise --no-report "your prompt here"
+
+# Machine-readable JSON output (for scripting / CI)
+tokenwise --json "your prompt here"
 
 # Pipe text via stdin
 echo "your prompt here" | tokenwise
@@ -312,7 +315,7 @@ Rate limits are enforced per client token (sliding window), not per IP.
 python -m pytest tests/ -v
 ```
 
-111 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, REST API (auth, rate limiting, payload limit, `/optimize`, `/chat` with mocked LLM), and admin endpoints.
+114 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration (including `--json`), REST API (auth, rate limiting, payload limit, `/optimize`, `/chat` with mocked LLM), and admin endpoints.
 
 ## Project Structure
 
@@ -352,9 +355,9 @@ TokenWise/
   - Plans: `basic` (60 req/min) and `pro` (300 req/min), fully customizable
   - Sliding-window rate limiting per client
   - Tokens stored as SHA-256 hashes — plaintext shown only at creation
+- `--json` flag — machine-readable JSON output for scripting and CI pipelines ✓
 
 ### Planned
-- `--json` flag — machine-readable output for scripting
 - `--diff` flag — show exactly what changed between original and optimized
 - Spanish (`es`) language support
 
