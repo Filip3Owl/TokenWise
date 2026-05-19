@@ -18,7 +18,7 @@ from .database import get_client_by_token
 
 _bearer = HTTPBearer()
 
-# Sliding-window store: token -> list of UNIX timestamps within the last 60 s.
+# Sliding-window store: client id -> list of UNIX timestamps within the last 60 s.
 # Works correctly for a single-process server; use Redis for multi-process deployments.
 _rate_windows: dict[str, list[float]] = defaultdict(list)
 
@@ -62,7 +62,7 @@ def require_client_auth(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    _enforce_rate_limit(client["token"], client["rate_limit"])
+    _enforce_rate_limit(str(client["id"]), client["rate_limit"])
 
     # Make the client record available to the endpoint via request.state
     request.state.client = client

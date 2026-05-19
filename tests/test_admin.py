@@ -15,21 +15,27 @@ client = TestClient(app)
 ADMIN_TOKEN = "master-admin-key"
 ADMIN_HEADER = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
 
-# Sample client records used as fixtures
+# Sample client records used as fixtures.
+# token field simulates what the API returns: plaintext on creation, masked (prefix...) on list/get.
 _BASIC_CLIENT = {
     "id": 1,
     "name": "acme",
-    "token": "tok_basic_abc",
+    "token": "tok_basi...",  # masked — as returned by list/get
     "plan": "basic",
     "rate_limit": 60,
     "is_active": True,
     "created_at": "2026-01-01 00:00:00",
 }
 
+_BASIC_CLIENT_CREATED = {
+    **_BASIC_CLIENT,
+    "token": "tok_basic_abc_plaintext",  # plaintext — as returned by create only
+}
+
 _PRO_CLIENT = {
     "id": 2,
     "name": "bigcorp",
-    "token": "tok_pro_xyz",
+    "token": "tok_pro_...",  # masked
     "plan": "pro",
     "rate_limit": 300,
     "is_active": True,
@@ -47,18 +53,21 @@ def set_admin_key(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_create_client_basic(monkeypatch):
-    monkeypatch.setattr("api.admin.create_client", lambda name, plan, rate_limit: _BASIC_CLIENT)
+    monkeypatch.setattr("api.admin.create_client", lambda name, plan, rate_limit: _BASIC_CLIENT_CREATED)
     response = client.post("/admin/clients", json={"name": "acme"}, headers=ADMIN_HEADER)
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "acme"
     assert data["plan"] == "basic"
     assert data["rate_limit"] == 60
+    # On creation the full plaintext token is returned (no trailing "...")
     assert "token" in data
+    assert not data["token"].endswith("...")
 
 
 def test_create_client_pro(monkeypatch):
-    monkeypatch.setattr("api.admin.create_client", lambda name, plan, rate_limit: _PRO_CLIENT)
+    pro_created = {**_PRO_CLIENT, "token": "tok_pro_xyz_plaintext"}
+    monkeypatch.setattr("api.admin.create_client", lambda name, plan, rate_limit: pro_created)
     response = client.post("/admin/clients", json={"name": "bigcorp", "plan": "pro"}, headers=ADMIN_HEADER)
     assert response.status_code == 201
     data = response.json()
@@ -67,7 +76,7 @@ def test_create_client_pro(monkeypatch):
 
 
 def test_create_client_custom_rate_limit(monkeypatch):
-    custom = {**_BASIC_CLIENT, "rate_limit": 120}
+    custom = {**_BASIC_CLIENT_CREATED, "rate_limit": 120}
     monkeypatch.setattr("api.admin.create_client", lambda name, plan, rate_limit: custom)
     response = client.post(
         "/admin/clients",
@@ -193,7 +202,8 @@ def test_revoke_client_no_auth():
 
 def test_rate_limit_exceeded(monkeypatch):
     """A client with rate_limit=1 should get 429 on the second request."""
-    tight_client = {**_BASIC_CLIENT, "token": "tight-token", "rate_limit": 1}
+    # Use id=9999 to avoid colliding with the _FAKE_CLIENT (id=1) used in other tests
+    tight_client = {**_BASIC_CLIENT, "id": 9999, "token": "tight-token...", "rate_limit": 1}
     monkeypatch.setattr("api.auth.get_client_by_token", lambda token: tight_client if token == "tight-token" else None)
 
     headers = {"Authorization": "Bearer tight-token"}
