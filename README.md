@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Reduce LLM token consumption without losing prompt meaning.</strong><br/>
-  NLP-powered optimizer for Claude, GPT-4, and Codex prompts — English and Portuguese.
+  NLP-powered optimizer for Claude, GPT-4, and Gemini prompts — English and Portuguese.
 </p>
 
 <p align="center">
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Gemini-6366f1?style=flat-square"/>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-94%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-111%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -166,10 +166,57 @@ uvicorn api.main:app --reload
 
 Interactive docs available at `http://127.0.0.1:8000/docs`.
 
-All endpoints except `/health` require a Bearer token:
+### Authentication model
+
+TokenWise uses a two-tier auth system:
+
+| Token type | Used for | Configured via |
+|---|---|---|
+| **Master key** (`TOKENWISE_API_KEY`) | `/admin/*` endpoints only | env var |
+| **Client token** | `/optimize` and `/chat` | created via `POST /admin/clients` |
+
+Start by creating a client token with the master key, then use that client token for API calls.
+
+```bash
+# Step 1 — create a client (run once)
+curl -X POST http://127.0.0.1:8000/admin/clients \
+  -H "Authorization: Bearer $TOKENWISE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app", "plan": "basic"}'
+# → returns a token field — save it
+
+# Step 2 — use the client token for all API calls
+Authorization: Bearer <client-token>
 ```
-Authorization: Bearer <your-TOKENWISE_API_KEY>
+
+---
+
+**`POST /admin/clients`** — create a new client token.
+
+```bash
+curl -X POST http://127.0.0.1:8000/admin/clients \
+  -H "Authorization: Bearer $TOKENWISE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app", "plan": "pro"}'
 ```
+
+```json
+{
+  "id": 1,
+  "name": "my-app",
+  "token": "abc123...",
+  "plan": "pro",
+  "rate_limit": 300,
+  "is_active": true,
+  "created_at": "2026-05-18 10:00:00"
+}
+```
+
+**`GET /admin/clients`** — list all clients.
+
+**`PATCH /admin/clients/{token}`** — update plan or rate limit.
+
+**`DELETE /admin/clients/{token}`** — revoke a client token.
 
 ---
 
@@ -237,12 +284,23 @@ Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires
 | `lang` | `"auto"`, `"en"`, or `"pt"` (default: `"auto"`) |
 | `conservative` | Skip stopword removal (default: `false`) |
 
+### Plans and rate limits
+
+| Plan | Rate limit | Set via |
+|---|---|---|
+| `basic` (default) | 60 req / min | `"plan": "basic"` |
+| `pro` | 300 req / min | `"plan": "pro"` |
+| Custom | any value 1–10,000 | `"rate_limit": <n>` |
+
+Rate limits are enforced per client token (sliding window), not per IP.
+
 ### Security
 
 | Protection | Detail |
 |---|---|
-| Authentication | Bearer token (`TOKENWISE_API_KEY`) |
-| Rate limiting | 60 requests / minute per IP |
+| Admin auth | Master `TOKENWISE_API_KEY` env var |
+| Client auth | Per-client Bearer token stored in SQLite |
+| Rate limiting | Per-client sliding window (plan-based or custom) |
 | Payload cap | 10,000 characters max |
 | LLM timeout | 30 seconds |
 
@@ -252,17 +310,19 @@ Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires
 python -m pytest tests/ -v
 ```
 
-94 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, REST API (auth, rate limiting, payload limit, `/optimize`, `/chat` with mocked LLM).
+111 tests across tokenizer, NLP, strategies, pricing, postprocessor, language detection, optimizer pipeline, CLI integration, REST API (auth, rate limiting, payload limit, `/optimize`, `/chat` with mocked LLM), and admin endpoints.
 
 ## Project Structure
 
 ```
 TokenWise/
 ├── api/
-│   ├── main.py            # FastAPI app: GET /health, POST /optimize, POST /chat
-│   ├── auth.py            # Bearer token authentication dependency
+│   ├── main.py            # FastAPI app: health, optimize, chat + admin router
+│   ├── admin.py           # /admin/clients CRUD (Phase C)
+│   ├── auth.py            # require_admin_auth + require_client_auth + rate limiting
+│   ├── database.py        # SQLite client store (stdlib sqlite3)
 │   ├── config.py          # Central config: payload limit, LLM timeout
-│   ├── llm.py             # Upstream LLM client (Anthropic + OpenAI)
+│   ├── llm.py             # Upstream LLM client (Anthropic + OpenAI + Gemini)
 │   └── schemas.py         # Pydantic request/response models
 ├── optimizer/
 │   ├── core.py            # Optimizer pipeline + language detection
@@ -284,11 +344,11 @@ TokenWise/
 
 ### Done
 - `POST /optimize` REST API endpoint (FastAPI) ✓
-- `POST /chat` proxy endpoint — optimizes and forwards to Claude/GPT ✓
-- Bearer token auth + rate limiting + payload cap + LLM timeout ✓
-
-### Next
-- Per-client API tokens with individual rate limits (Phase C)
+- `POST /chat` proxy endpoint — optimizes and forwards to Claude / GPT / Gemini ✓
+- Per-client API tokens with individual rate limits (Phase C) ✓
+  - SQLite client store, `/admin/clients` CRUD
+  - Plans: `basic` (60 req/min) and `pro` (300 req/min), fully customizable
+  - Sliding-window rate limiting per client token
 
 ### Planned
 - `--json` flag — machine-readable output for scripting

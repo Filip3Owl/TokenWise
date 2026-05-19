@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Gemini). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
-Phases A and B are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic, OpenAI, or Google Gemini, returning the LLM response alongside savings metadata. Protected by Bearer token auth and rate limiting (60 req/min per IP).
+Phases A, B, and C are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic, OpenAI, or Google Gemini, returning the LLM response alongside savings metadata. Protected by per-client Bearer token auth (SQLite) with per-client rate limiting (basic=60 req/min, pro=300 req/min). Admin endpoints at `/admin/clients` manage client tokens and are protected by the master `TOKENWISE_API_KEY`.
 
 ## Environment
 
@@ -15,7 +15,7 @@ source venv/bin/activate   # activate before running anything
 pip install -e .           # install package + dependencies (editable mode)
 ```
 
-Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fastapi`, `uvicorn`, `slowapi`, `httpx`
+Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fastapi`, `uvicorn`, `httpx`
 
 ## Commands
 
@@ -33,10 +33,16 @@ uvicorn api.main:app --reload          # http://127.0.0.1:8000
 # Swagger UI: http://127.0.0.1:8000/docs
 
 # Required environment variables (copy .env.example to .env and fill in)
-# TOKENWISE_API_KEY  — Bearer token that clients must send (generate with secrets.token_urlsafe(32))
+# TOKENWISE_API_KEY  — master admin key for /admin/clients endpoints (generate with secrets.token_urlsafe(32))
 # ANTHROPIC_API_KEY  — required for POST /chat with claude-* models
 # OPENAI_API_KEY     — required for POST /chat with gpt-* models
 # GOOGLE_API_KEY     — required for POST /chat with gemini-* models
+
+# First-time setup: create a client token before calling /optimize or /chat
+# curl -X POST http://127.0.0.1:8000/admin/clients \
+#   -H "Authorization: Bearer $TOKENWISE_API_KEY" \
+#   -H "Content-Type: application/json" \
+#   -d '{"name": "my-app", "plan": "basic"}'
 
 # Run tests
 python -m pytest tests/ -v
@@ -56,11 +62,13 @@ nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('rslp')
 ```
 main.py                — CLI entry point (argparse + rich), calls Optimizer
 api/
-  main.py              — FastAPI app: GET /health, POST /optimize, POST /chat
-  auth.py              — Bearer token authentication dependency
+  main.py              — FastAPI app: health, optimize, chat + admin router; DB init on startup
+  admin.py             — /admin/clients CRUD router (Phase C)
+  auth.py              — require_admin_auth (env var) + require_client_auth (DB + rate limit)
+  database.py          — SQLite client store via stdlib sqlite3: init_db, create/get/list/update/revoke
   config.py            — Central config: MAX_PROMPT_CHARS, LLM_TIMEOUT_SECONDS
   llm.py               — Upstream LLM client: Anthropic + OpenAI + Google Gemini via httpx
-  schemas.py           — Pydantic models: OptimizeRequest/Response, ChatRequest/Response
+  schemas.py           — Pydantic models: OptimizeRequest/Response, ChatRequest/Response, ClientCreate/Update/Response
 optimizer/
   core.py              — Optimizer class: language detection + strategy pipeline
   tokenizer.py         — Token counting via tiktoken (model-aware)
@@ -79,7 +87,8 @@ tests/
   test_lang.py
   test_codeblock.py
   test_cli.py          — CLI integration tests (--conservative, --output, --file, stdin)
-  test_api.py          — API integration tests: /optimize, /chat (mocked LLM), auth, rate limit
+  test_api.py          — API integration tests: /optimize, /chat (mocked LLM + DB), auth, rate limit
+  test_admin.py        — Admin endpoint tests: CRUD + rate limit enforcement (Phase C)
 pyproject.toml         — package entry point: tokenwise = "main:main"
 requirements.txt
 ```
@@ -131,17 +140,19 @@ Token counts are always model-specific; never use character-based estimates.
 `POST /optimize` — optimizes a prompt and returns token/cost savings. No LLM call.
 
 ### Done: Proxy endpoint (Phase B) ✓
-`POST /chat` — optimizes the prompt and forwards it to Anthropic or OpenAI, returning the LLM response + savings metadata.
-- Bearer token auth (`TOKENWISE_API_KEY`)
-- Rate limiting: 60 req/min per IP (`slowapi`)
+`POST /chat` — optimizes the prompt and forwards it to Anthropic, OpenAI, or Google Gemini, returning the LLM response + savings metadata.
 - Payload cap: 10,000 characters
 - LLM timeout: 30 seconds (`httpx`)
-- Supports `claude-*` (Anthropic) and `gpt-*` (OpenAI)
+- Supports `claude-*`, `gpt-*`, `gemini-*`
 
-### Next: Multi-tenant auth (Phase C)
-Per-client API tokens with individual rate limits stored in a database. Enables different plans (basic/pro) and per-client revocation.
+### Done: Multi-tenant auth (Phase C) ✓
+Per-client API tokens with individual rate limits stored in SQLite (`tokenwise.db`).
+- `/admin/clients` CRUD — protected by master `TOKENWISE_API_KEY`
+- Plans: `basic` (60 req/min) · `pro` (300 req/min) · fully customizable per client
+- Per-client sliding-window rate limiting in `auth.py` (no Redis needed for single-process)
+- Tokens are soft-deleted on revocation (`is_active = 0`)
 
-### Other planned features
+### Planned features
 - `--json` CLI flag — machine-readable output
 - `--diff` CLI flag — show what changed
 - Spanish (`es`) language support
