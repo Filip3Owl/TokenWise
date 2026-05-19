@@ -149,8 +149,11 @@ Token counts are always model-specific; never use character-based estimates.
 Per-client API tokens with individual rate limits stored in SQLite (`tokenwise.db`).
 - `/admin/clients` CRUD — protected by master `TOKENWISE_API_KEY`
 - Plans: `basic` (60 req/min) · `pro` (300 req/min) · fully customizable per client
-- Per-client sliding-window rate limiting in `auth.py` (no Redis needed for single-process)
+- Per-client sliding-window rate limiting keyed by client `id` (no Redis needed for single-process)
+- Tokens stored as SHA-256 hashes — plaintext returned only at creation, never persisted
+- `GET /admin/clients` shows only the first 8 characters of each token (`prefix...`)
 - Tokens are soft-deleted on revocation (`is_active = 0`)
+- `init_db()` auto-migrates old schema (pre-hash) on startup
 
 ### Planned features
 - `--json` CLI flag — machine-readable output

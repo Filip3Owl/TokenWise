@@ -204,13 +204,15 @@ curl -X POST http://127.0.0.1:8000/admin/clients \
 {
   "id": 1,
   "name": "my-app",
-  "token": "abc123...",
+  "token": "abc123XYZ...(full plaintext — save this, it won't be shown again)",
   "plan": "pro",
   "rate_limit": 300,
   "is_active": true,
   "created_at": "2026-05-18 10:00:00"
 }
 ```
+
+> **Save the token immediately.** It is returned in full only at creation. Subsequent calls to `GET /admin/clients` show only the first 8 characters (`abc123XY...`) — the full value is never stored in the database.
 
 **`GET /admin/clients`** — list all clients.
 
@@ -299,7 +301,7 @@ Rate limits are enforced per client token (sliding window), not per IP.
 | Protection | Detail |
 |---|---|
 | Admin auth | Master `TOKENWISE_API_KEY` env var |
-| Client auth | Per-client Bearer token stored in SQLite |
+| Client auth | Per-client Bearer token — stored as SHA-256 hash, plaintext never persisted |
 | Rate limiting | Per-client sliding window (plan-based or custom) |
 | Payload cap | 10,000 characters max |
 | LLM timeout | 30 seconds |
@@ -348,7 +350,8 @@ TokenWise/
 - Per-client API tokens with individual rate limits (Phase C) ✓
   - SQLite client store, `/admin/clients` CRUD
   - Plans: `basic` (60 req/min) and `pro` (300 req/min), fully customizable
-  - Sliding-window rate limiting per client token
+  - Sliding-window rate limiting per client
+  - Tokens stored as SHA-256 hashes — plaintext shown only at creation
 
 ### Planned
 - `--json` flag — machine-readable output for scripting
