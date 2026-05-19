@@ -1,42 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="420" height="140">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" width="480" height="140">
 
   <!-- Background -->
-  <rect width="420" height="140" fill="#ffffff"/>
+  <rect width="480" height="140" rx="8" fill="#0d0d1f"/>
 
-  <!-- Outer border -->
-  <rect x="10" y="10" width="400" height="120" fill="none" stroke="#000000" stroke-width="3"/>
+  <!-- ── Wizard hat ── -->
+  <!-- Hat body -->
+  <polygon points="66,18 34,102 98,102" fill="#7c3aed"/>
+  <!-- Hat shine -->
+  <polygon points="66,18 52,60 66,55" fill="#9d5cf0" opacity="0.5"/>
+  <!-- Hat brim -->
+  <ellipse cx="66" cy="103" rx="40" ry="9" fill="#5b21b6"/>
+  <ellipse cx="66" cy="101" rx="36" ry="7" fill="#6d28d9"/>
 
-  <!-- Inner border (double line classic 90s) -->
-  <rect x="16" y="16" width="388" height="108" fill="none" stroke="#000000" stroke-width="1"/>
+  <!-- Stars on hat -->
+  <text x="55" y="58" font-family="serif" font-size="14" fill="#fbbf24">★</text>
+  <text x="68" y="78" font-family="serif" font-size="10" fill="#fde68a">✦</text>
+  <text x="47" y="80" font-family="serif" font-size="9"  fill="#fde68a">✦</text>
 
-  <!-- Icon block: filled square with T -->
-  <rect x="30" y="32" width="72" height="72" fill="#000000"/>
+  <!-- Crescent moon on hat -->
+  <path d="M72,34 a8,8 0 1,1 0,16 a5,5 0 1,0 0,-16" fill="#fbbf24"/>
+
+  <!-- ── Wand ── -->
+  <line x1="98" y1="102" x2="122" y2="30" stroke="#c4a35a" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Wand tip star -->
+  <text x="112" y="28" font-family="serif" font-size="18" fill="#fbbf24">★</text>
+  <!-- Sparkles around wand tip -->
+  <text x="128" y="22" font-family="serif" font-size="9" fill="#fde68a" opacity="0.8">✦</text>
+  <text x="105" y="14" font-family="serif" font-size="7" fill="#fde68a" opacity="0.6">✦</text>
+
+  <!-- ── Separator ── -->
+  <line x1="148" y1="18" x2="148" y2="122" stroke="#7c3aed" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- ── Main title ── -->
   <text
-    x="66" y="84"
+    x="165" y="83"
     font-family="'Arial Black', Impact, sans-serif"
     font-size="48" font-weight="900"
     fill="#ffffff"
-    text-anchor="middle"
-  >T</text>
-
-  <!-- Vertical separator -->
-  <line x1="118" y1="28" x2="118" y2="112" stroke="#000000" stroke-width="2"/>
-
-  <!-- Main title -->
-  <text
-    x="138" y="80"
-    font-family="'Arial Black', Impact, sans-serif"
-    font-size="46" font-weight="900"
-    fill="#000000"
     letter-spacing="-1"
   >TokenWise</text>
 
-  <!-- Tagline -->
+  <!-- ── Tagline ── -->
   <text
-    x="138" y="104"
+    x="167" y="107"
     font-family="'Courier New', Courier, monospace"
     font-size="11"
-    fill="#000000"
+    fill="#a78bfa"
     letter-spacing="2.5"
   >PROMPT TOKEN OPTIMIZER</text>
 
