@@ -1,15 +1,18 @@
 from dataclasses import dataclass, field
 
 
+# Result produced by a single optimization strategy.
 @dataclass
 class StrategyResult:
-    name: str
-    original_text: str
-    optimized_text: str
-    tokens_saved: int
+    name: str           # internal strategy identifier (e.g. "stopword_removal")
+    original_text: str  # text received by this strategy
+    optimized_text: str # text after this strategy was applied
+    tokens_saved: int   # difference in token count (original - optimized)
     applied: bool = True
 
 
+# Aggregated result returned by Optimizer.optimize().
+# Properties are computed lazily from the stored token/cost fields.
 @dataclass
 class OptimizationResult:
     original_text: str
