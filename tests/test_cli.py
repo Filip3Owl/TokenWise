@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -66,3 +67,29 @@ def test_missing_file_exits_with_error():
     result = run("--file", "/nonexistent/path/prompt.txt")
     assert result.returncode == 1
     assert "Error" in result.stdout
+
+
+def test_json_flag_outputs_valid_json():
+    result = run("--json", "In order to succeed, make use of all tools.")
+    assert result.returncode == 0
+    data = json.loads(result.stdout)
+    assert "optimized_text" in data
+    assert "tokens" in data
+    assert "cost_usd" in data
+    assert "strategies" in data
+
+
+def test_json_flag_no_report_noise():
+    result = run("--json", "In order to succeed.")
+    assert result.returncode == 0
+    # stdout must be pure JSON — no rich markup or report headers
+    json.loads(result.stdout)
+    assert "TokenWise" not in result.stdout
+
+
+def test_json_flag_token_fields():
+    result = run("--json", "In order to succeed, make use of all available tools and resources.")
+    data = json.loads(result.stdout)
+    tokens = data["tokens"]
+    assert tokens["saved"] == tokens["original"] - tokens["final"]
+    assert 0.0 <= data["tokens"]["savings_pct"] <= 100.0

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import sys
 
 from rich.console import Console, Group
@@ -61,10 +62,16 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["auto", "en", "pt"],
         help="Language of the prompt (auto, en, pt). Default: auto",
     )
-    parser.add_argument(
+    output_format = parser.add_mutually_exclusive_group()
+    output_format.add_argument(
         "--no-report",
         action="store_true",
         help="Print only the optimized text, no report",
+    )
+    output_format.add_argument(
+        "--json",
+        action="store_true",
+        help="Print machine-readable JSON output",
     )
     return parser
 
@@ -125,6 +132,36 @@ def print_report(result) -> None:
     ))
 
 
+def print_json(result) -> None:
+    payload = {
+        "model": result.model,
+        "lang": result.lang,
+        "original_text": result.original_text,
+        "optimized_text": result.optimized_text,
+        "tokens": {
+            "original": result.original_tokens,
+            "final": result.final_tokens,
+            "saved": result.tokens_saved,
+            "savings_pct": round(result.savings_pct, 2),
+        },
+        "cost_usd": {
+            "original": round(result.original_cost, 6),
+            "final": round(result.final_cost, 6),
+            "saved": round(result.cost_saved, 6),
+            "savings_pct": round(result.cost_savings_pct, 2),
+        },
+        "strategies": [
+            {
+                "name": sr.name,
+                "tokens_saved": sr.tokens_saved,
+                "applied": sr.applied,
+            }
+            for sr in result.strategy_results
+        ],
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
@@ -146,10 +183,15 @@ def main() -> None:
 
     optimizer = Optimizer(conservative=args.conservative)
 
-    with console.status("Optimizing...", spinner="dots"):
+    if args.json:
         result = optimizer.optimize(text, model=args.model, lang=args.lang)
+    else:
+        with console.status("Optimizing...", spinner="dots"):
+            result = optimizer.optimize(text, model=args.model, lang=args.lang)
 
-    if args.no_report:
+    if args.json:
+        print_json(result)
+    elif args.no_report:
         print(result.optimized_text)
     else:
         print_report(result)
