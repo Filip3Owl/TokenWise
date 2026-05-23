@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="assets/tokenwise_logo.svg" alt="TokenWise Logo" width="480"/>
-</p>
-
-<p align="center">
   <strong>Reduce LLM token consumption without losing prompt meaning.</strong><br/>
   NLP-powered optimizer for Claude, GPT-4, and Gemini prompts — English and Portuguese.
 </p>
