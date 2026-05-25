@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ModelPrice:
-    input_per_million: float   # USD per 1M input tokens
-    output_per_million: float  # USD per 1M output tokens
+    input_per_million: float   # USD por 1M tokens de entrada
+    output_per_million: float  # USD por 1M tokens de saída
 
 
-# Prices as of May 2025
+# Preços válidos em maio de 2025
 _PRICES: dict[str, ModelPrice] = {
     # Claude
     "claude-opus-4-7":          ModelPrice(15.00, 75.00),
@@ -18,7 +18,7 @@ _PRICES: dict[str, ModelPrice] = {
     "gpt-4":                    ModelPrice(30.00, 60.00),
     "gpt-4o-mini":              ModelPrice(0.15,   0.60),
     "gpt-3.5-turbo":            ModelPrice(0.50,   1.50),
-    # Codex / legacy
+    # Codex / legado
     "text-davinci-003":         ModelPrice(2.00,   2.00),
     "code-davinci-002":         ModelPrice(2.00,   2.00),
     # Google Gemini
@@ -28,7 +28,7 @@ _PRICES: dict[str, ModelPrice] = {
     "gemini-1.5-pro":           ModelPrice(1.25,   5.00),
 }
 
-# Prefix fallbacks when no exact match is found
+# Fallbacks por prefixo quando nenhuma correspondência exata é encontrada
 _PREFIX_FALLBACKS: list[tuple[str, str]] = [
     ("claude-opus",   "claude-opus-4-7"),
     ("claude-sonnet", "claude-sonnet-4-6"),
@@ -40,7 +40,7 @@ _PREFIX_FALLBACKS: list[tuple[str, str]] = [
     ("gpt-3.5",       "gpt-3.5-turbo"),
     ("codex",         "text-davinci-003"),
     ("text-davinci",  "text-davinci-003"),
-    # Gemini — most specific prefixes first
+    # Gemini — prefixos mais específicos primeiro
     ("gemini-3",         "gemini-3-flash-preview"),
     ("gemini-2.0",       "gemini-2.0-flash"),
     ("gemini-1.5-flash", "gemini-1.5-flash"),
@@ -56,12 +56,12 @@ def get_price(model: str) -> ModelPrice:
     for prefix, canonical in _PREFIX_FALLBACKS:
         if model_lower.startswith(prefix):
             return _PRICES[canonical]
-    # Default to claude-sonnet when unknown
+    # Usa claude-sonnet como padrão para modelos desconhecidos
     return _PRICES["claude-sonnet-4-6"]
 
 
 def calculate_cost(tokens: int, model: str) -> float:
-    """Return USD cost for a given token count (input side)."""
+    """Retorna o custo em USD para uma contagem de tokens (lado de entrada)."""
     return (tokens / 1_000_000) * get_price(model).input_per_million
 
 

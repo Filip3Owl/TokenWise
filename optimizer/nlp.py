@@ -1,13 +1,13 @@
 import ssl
 import re
 
-# macOS SSL fix for NLTK downloads
+# Correção de SSL no macOS para downloads do NLTK
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
-# Words that look like stopwords but carry semantic weight in prompts
+# Palavras que parecem stopwords mas carregam peso semântico em prompts
 _KEEP_EN = {
     "not", "no", "never", "only", "just", "very", "must", "should",
     "need", "please", "do", "don't", "always", "all", "any", "more",
@@ -17,13 +17,13 @@ _KEEP_PT = {
     "por favor", "sempre", "todo", "toda", "qualquer", "mais", "menos",
 }
 
-# Multi-word expressions that must be kept intact even if each word is a stopword
+# Expressões de múltiplas palavras que devem ser mantidas intactas mesmo que cada palavra seja uma stopword
 _PROTECT_BIGRAMS_PT: set[tuple[str, str]] = {
-    ("por", "que"),   # why
-    ("por", "isso"),  # therefore
-    ("por", "fim"),   # finally
-    ("o", "que"),     # what
-    ("ao", "invés"),  # instead
+    ("por", "que"),   # por que
+    ("por", "isso"),  # portanto
+    ("por", "fim"),   # por fim
+    ("o", "que"),     # o que
+    ("ao", "invés"),  # ao invés de
 }
 
 _STOPWORDS_EN = stopwords.words("english")

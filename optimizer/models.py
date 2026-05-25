@@ -1,18 +1,18 @@
 from dataclasses import dataclass, field
 
 
-# Result produced by a single optimization strategy.
+# Resultado produzido por uma única estratégia de otimização.
 @dataclass
 class StrategyResult:
-    name: str           # internal strategy identifier (e.g. "stopword_removal")
-    original_text: str  # text received by this strategy
-    optimized_text: str # text after this strategy was applied
-    tokens_saved: int   # difference in token count (original - optimized)
+    name: str           # identificador interno da estratégia (ex: "stopword_removal")
+    original_text: str  # texto recebido por esta estratégia
+    optimized_text: str # texto após a aplicação desta estratégia
+    tokens_saved: int   # diferença na contagem de tokens (original - otimizado)
     applied: bool = True
 
 
-# Aggregated result returned by Optimizer.optimize().
-# Properties are computed lazily from the stored token/cost fields.
+# Resultado agregado retornado por Optimizer.optimize().
+# Propriedades calculadas de forma lazy a partir dos campos de token/custo armazenados.
 @dataclass
 class OptimizationResult:
     original_text: str

@@ -1,17 +1,17 @@
 """
-TokenWise FastAPI application.
+Aplicação FastAPI do TokenWise.
 
-Exposes the NLP-powered prompt optimizer as a REST API so that any service
-can reduce its LLM token costs without changing its own codebase.
+Expõe o otimizador de prompts com NLP como uma API REST para que qualquer serviço
+possa reduzir seus custos de tokens de LLM sem alterar seu próprio código.
 
 Endpoints:
-    GET    /health              — liveness check
-    POST   /optimize            — optimize a prompt and return token/cost savings
-    POST   /chat                — (Phase B) optimize and forward to upstream LLM
-    POST   /admin/clients       — (Phase C) create a per-client API token
-    GET    /admin/clients       — (Phase C) list all clients
-    PATCH  /admin/clients/{t}   — (Phase C) update a client's plan/rate_limit
-    DELETE /admin/clients/{t}   — (Phase C) revoke a client token
+    GET    /health              — verificação de disponibilidade
+    POST   /optimize            — otimiza um prompt e retorna economia de tokens/custo
+    POST   /chat                — (Fase B) otimiza e encaminha ao LLM upstream
+    POST   /admin/clients       — (Fase C) cria um token de API por cliente
+    GET    /admin/clients       — (Fase C) lista todos os clientes
+    PATCH  /admin/clients/{t}   — (Fase C) atualiza plano/rate_limit de um cliente
+    DELETE /admin/clients/{t}   — (Fase C) revoga um token de cliente
 """
 
 from contextlib import asynccontextmanager
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="TokenWise API",
-    description="NLP-powered prompt optimizer — reduce token costs before calling LLM APIs.",
+    description="Otimizador de prompts com NLP — reduza custos de tokens antes de chamar APIs de LLM.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -44,21 +44,21 @@ app.include_router(admin_router)
 
 @app.get("/health")
 def health():
-    """Liveness check — returns 200 OK when the server is running."""
+    """Verificação de disponibilidade — retorna 200 OK quando o servidor está ativo."""
     return {"status": "ok"}
 
 
 @app.post("/optimize", response_model=OptimizeResponse)
 def optimize(request: Request, body: OptimizeRequest, client: dict = Depends(require_client_auth)):
     """
-    Optimize a prompt to reduce token consumption.
+    Otimiza um prompt para reduzir o consumo de tokens.
 
-    Applies a pipeline of NLP strategies (whitespace collapse, verbose phrase
-    replacement, redundancy removal, stopword removal) and returns the optimized
-    text along with token counts, cost estimates, and a per-strategy breakdown.
+    Aplica um pipeline de estratégias de NLP (colapso de espaços, substituição de frases
+    prolixas, remoção de redundâncias, remoção de stopwords) e retorna o texto otimizado
+    com contagem de tokens, estimativas de custo e breakdown por estratégia.
 
-    Authentication: per-client Bearer token (managed via /admin/clients).
-    Rate limit: per-client (basic=60 req/min, pro=300 req/min).
+    Autenticação: Bearer token por cliente (gerenciado via /admin/clients).
+    Rate limit: por cliente (basic=60 req/min, pro=300 req/min).
     """
     try:
         optimizer = Optimizer(conservative=body.conservative)
@@ -93,19 +93,19 @@ def optimize(request: Request, body: OptimizeRequest, client: dict = Depends(req
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: Request, body: ChatRequest, client: dict = Depends(require_client_auth)):
     """
-    Optimize a prompt and forward it to the upstream LLM.
+    Otimiza um prompt e o encaminha ao LLM upstream.
 
-    This is the TokenWise proxy endpoint. The caller sends a prompt; TokenWise
-    optimizes it, calls the appropriate LLM (Anthropic, OpenAI, or Google Gemini),
-    and returns the LLM response alongside the optimization savings metadata.
+    Este é o endpoint proxy do TokenWise. O chamador envia um prompt; o TokenWise
+    o otimiza, chama o LLM adequado (Anthropic, OpenAI ou Google Gemini) e retorna
+    a resposta do LLM junto com os metadados de economia da otimização.
 
-    Supported models:
-        - claude-* → Anthropic Messages API (requires ANTHROPIC_API_KEY)
-        - gpt-*    → OpenAI Chat Completions API (requires OPENAI_API_KEY)
-        - gemini-* → Google Gemini API (requires GOOGLE_API_KEY)
+    Modelos suportados:
+        - claude-* → Anthropic Messages API (requer ANTHROPIC_API_KEY)
+        - gpt-*    → OpenAI Chat Completions API (requer OPENAI_API_KEY)
+        - gemini-* → Google Gemini API (requer GOOGLE_API_KEY)
 
-    Authentication: per-client Bearer token (managed via /admin/clients).
-    Rate limit: per-client (basic=60 req/min, pro=300 req/min).
+    Autenticação: Bearer token por cliente (gerenciado via /admin/clients).
+    Rate limit: por cliente (basic=60 req/min, pro=300 req/min).
     """
     optimizer = Optimizer(conservative=body.conservative)
     result = optimizer.optimize(body.text, model=body.model, lang=body.lang)

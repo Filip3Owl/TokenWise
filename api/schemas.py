@@ -1,8 +1,8 @@
 """
-Pydantic schemas for the TokenWise REST API.
+Schemas Pydantic para a API REST do TokenWise.
 
-Defines the request and response models used by the /optimize, /chat, and /admin endpoints.
-Pydantic validates incoming JSON automatically and serializes responses.
+Define os modelos de requisição e resposta usados pelos endpoints /optimize, /chat e /admin.
+O Pydantic valida o JSON recebido automaticamente e serializa as respostas.
 """
 
 from pydantic import BaseModel, Field
@@ -15,7 +15,7 @@ from .config import MAX_PROMPT_CHARS
 # ---------------------------------------------------------------------------
 
 class OptimizeRequest(BaseModel):
-    """Payload for POST /optimize."""
+    """Payload do POST /optimize."""
 
     text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
     model: str = "claude-sonnet-4-6"
@@ -24,7 +24,7 @@ class OptimizeRequest(BaseModel):
 
 
 class StrategyResultResponse(BaseModel):
-    """Per-strategy breakdown included in every OptimizeResponse."""
+    """Breakdown por estratégia incluído em todo OptimizeResponse."""
 
     name: str
     tokens_saved: int
@@ -32,7 +32,7 @@ class StrategyResultResponse(BaseModel):
 
 
 class OptimizeResponse(BaseModel):
-    """Full optimization result returned by POST /optimize."""
+    """Resultado completo de otimização retornado pelo POST /optimize."""
 
     original_text: str
     optimized_text: str
@@ -54,7 +54,7 @@ class OptimizeResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
-    """Payload for POST /chat."""
+    """Payload do POST /chat."""
 
     text: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS)
     model: str = "claude-sonnet-4-6"
@@ -63,7 +63,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Response from POST /chat — LLM reply plus optimization metadata."""
+    """Resposta do POST /chat — resposta do LLM mais metadados de otimização."""
 
     llm_response: str
     original_tokens: int
@@ -83,23 +83,23 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ClientCreate(BaseModel):
-    """Payload for POST /admin/clients."""
+    """Payload do POST /admin/clients."""
 
     name: str = Field(..., min_length=1, max_length=100)
     plan: str = Field("basic", pattern="^(basic|pro)$")
-    # Optional override; if omitted the plan default is used (basic=60, pro=300)
+    # Substituição opcional; se omitido, usa o padrão do plano (basic=60, pro=300)
     rate_limit: int | None = Field(None, ge=1, le=10_000)
 
 
 class ClientUpdate(BaseModel):
-    """Payload for PATCH /admin/clients/{token}."""
+    """Payload do PATCH /admin/clients/{token}."""
 
     plan: str | None = Field(None, pattern="^(basic|pro)$")
     rate_limit: int | None = Field(None, ge=1, le=10_000)
 
 
 class ClientResponse(BaseModel):
-    """Client record returned by admin endpoints."""
+    """Registro de cliente retornado pelos endpoints de administração."""
 
     id: int
     name: str

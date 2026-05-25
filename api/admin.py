@@ -1,8 +1,8 @@
 """
-Admin router for managing per-client API tokens.
+Roteador de administração para gerenciar tokens de API por cliente.
 
-All endpoints require the master TOKENWISE_API_KEY (Bearer token from env var).
-Clients can be created, listed, updated, and revoked without restarting the server.
+Todos os endpoints exigem o TOKENWISE_API_KEY mestre (Bearer token via variável de ambiente).
+Clientes podem ser criados, listados, atualizados e revogados sem reiniciar o servidor.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,7 +19,7 @@ def create_client_endpoint(
     body: ClientCreate,
     _: None = Depends(require_admin_auth),
 ):
-    """Create a new client and return its generated Bearer token."""
+    """Cria um novo cliente e retorna seu Bearer token gerado."""
     try:
         client = create_client(name=body.name, plan=body.plan, rate_limit=body.rate_limit)
     except ValueError as exc:
@@ -29,7 +29,7 @@ def create_client_endpoint(
 
 @router.get("/clients", response_model=list[ClientResponse])
 def list_clients_endpoint(_: None = Depends(require_admin_auth)):
-    """Return all clients (active and revoked) ordered by creation date."""
+    """Retorna todos os clientes (ativos e revogados) ordenados por data de criação."""
     return [ClientResponse(**c) for c in list_clients()]
 
 
@@ -39,7 +39,7 @@ def update_client_endpoint(
     body: ClientUpdate,
     _: None = Depends(require_admin_auth),
 ):
-    """Update a client's plan and/or rate_limit."""
+    """Atualiza o plan e/ou rate_limit de um cliente."""
     try:
         client = update_client(token=token, plan=body.plan, rate_limit=body.rate_limit)
     except ValueError as exc:
@@ -51,6 +51,6 @@ def update_client_endpoint(
 
 @router.delete("/clients/{token}", status_code=status.HTTP_204_NO_CONTENT)
 def revoke_client_endpoint(token: str, _: None = Depends(require_admin_auth)):
-    """Revoke a client token (soft-delete). Returns 204 on success, 404 if not found."""
+    """Revoga um token de cliente (soft-delete). Retorna 204 em sucesso, 404 se não encontrado."""
     if not revoke_client(token):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found or already revoked.")

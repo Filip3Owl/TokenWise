@@ -1,17 +1,17 @@
 import re
 
-_PLACEHOLDER = "TWCB{}X"  # short, no spaces, survives NLTK tokenization
+_PLACEHOLDER = "TWCB{}X"  # curto, sem espaços, sobrevive à tokenização do NLTK
 
-# Order matters: fenced blocks must be matched before inline
+# A ordem importa: blocos com cerca devem ser detectados antes do inline
 _PATTERNS = [
-    r"```[\s\S]*?```",   # fenced triple-backtick blocks
-    r"`[^`\n]+`",        # inline single-backtick code
+    r"```[\s\S]*?```",   # blocos com três backticks
+    r"`[^`\n]+`",        # código inline com backtick simples
 ]
 _COMBINED = re.compile("|".join(_PATTERNS), re.DOTALL)
 
 
 def extract(text: str) -> tuple[str, list[str]]:
-    """Replace code blocks with placeholders. Returns (modified_text, original_blocks)."""
+    """Substitui blocos de código por placeholders. Retorna (texto_modificado, blocos_originais)."""
     blocks: list[str] = []
 
     def _replace(match: re.Match) -> str:
@@ -23,7 +23,7 @@ def extract(text: str) -> tuple[str, list[str]]:
 
 
 def restore(text: str, blocks: list[str]) -> str:
-    """Restore original code blocks from placeholders."""
+    """Restaura os blocos de código originais a partir dos placeholders."""
     for i, block in enumerate(blocks):
         text = text.replace(_PLACEHOLDER.format(i), block)
     return text

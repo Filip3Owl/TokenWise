@@ -46,7 +46,7 @@ class StopwordRemovalStrategy(Strategy):
 
 
 class VerbosePhrasesStrategy(Strategy):
-    """Replace common verbose patterns with concise equivalents."""
+    """Substitui padrões prolixos comuns por equivalentes concisos."""
     name = "verbose_phrases"
 
     _REPLACEMENTS_EN: list[tuple[str, str]] = [

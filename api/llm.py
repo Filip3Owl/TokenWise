@@ -1,9 +1,9 @@
 """
-Upstream LLM client for the TokenWise proxy (POST /chat).
+Cliente LLM upstream para o proxy do TokenWise (POST /chat).
 
-Supports Anthropic (claude-*), OpenAI (gpt-*), and Google Gemini (gemini-*) models.
-The appropriate client is selected automatically based on the model name prefix.
-API keys are read from environment variables — never hardcoded.
+Suporta modelos Anthropic (claude-*), OpenAI (gpt-*) e Google Gemini (gemini-*).
+O cliente adequado é selecionado automaticamente com base no prefixo do nome do modelo.
+As chaves de API são lidas de variáveis de ambiente — nunca embutidas no código.
 """
 
 import os
@@ -15,19 +15,19 @@ from .config import LLM_TIMEOUT_SECONDS
 
 def call_llm(prompt: str, model: str) -> str:
     """
-    Send an optimized prompt to the appropriate upstream LLM and return its response.
+    Envia um prompt otimizado ao LLM upstream adequado e retorna sua resposta.
 
     Args:
-        prompt: The already-optimized prompt text.
-        model:  The target model name (e.g. "claude-sonnet-4-6", "gpt-4o").
+        prompt: O texto do prompt já otimizado.
+        model:  O nome do modelo alvo (ex: "claude-sonnet-4-6", "gpt-4o").
 
     Returns:
-        The text content of the LLM's response.
+        O conteúdo de texto da resposta do LLM.
 
     Raises:
-        HTTP 400 if the model prefix is not supported.
-        HTTP 500 if the upstream API key is missing or the call fails.
-        HTTP 504 if the upstream LLM does not respond within LLM_TIMEOUT_SECONDS.
+        HTTP 400 se o prefixo do modelo não for suportado.
+        HTTP 500 se a chave de API upstream estiver ausente ou a chamada falhar.
+        HTTP 504 se o LLM upstream não responder dentro de LLM_TIMEOUT_SECONDS.
     """
     if model.startswith("claude"):
         return _call_anthropic(prompt, model)
@@ -43,7 +43,7 @@ def call_llm(prompt: str, model: str) -> str:
 
 
 def _call_anthropic(prompt: str, model: str) -> str:
-    """Call the Anthropic Messages API and return the assistant's text response."""
+    """Chama a Anthropic Messages API e retorna a resposta de texto do assistente."""
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(
@@ -81,13 +81,13 @@ def _call_anthropic(prompt: str, model: str) -> str:
             detail=f"Anthropic API error: {exc.response.status_code} — {exc.response.text}",
         )
 
-    # Extract the text from the first content block of the response
+    # Extrai o texto do primeiro bloco de conteúdo da resposta
     data = response.json()
     return data["content"][0]["text"]
 
 
 def _call_openai(prompt: str, model: str) -> str:
-    """Call the OpenAI Chat Completions API and return the assistant's text response."""
+    """Chama a OpenAI Chat Completions API e retorna a resposta de texto do assistente."""
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
         raise HTTPException(
@@ -123,17 +123,17 @@ def _call_openai(prompt: str, model: str) -> str:
             detail=f"OpenAI API error: {exc.response.status_code} — {exc.response.text}",
         )
 
-    # Extract the text from the first choice of the response
+    # Extrai o texto da primeira escolha da resposta
     data = response.json()
     return data["choices"][0]["message"]["content"]
 
 
 def _call_gemini(prompt: str, model: str) -> str:
     """
-    Call the Google Gemini generateContent API and return the model's text response.
+    Chama a API generateContent do Google Gemini e retorna a resposta de texto do modelo.
 
-    Uses the REST API directly via httpx — no SDK dependency required.
-    Requires GOOGLE_API_KEY to be set in the environment.
+    Usa a API REST diretamente via httpx — sem dependência de SDK.
+    Requer que GOOGLE_API_KEY esteja definida no ambiente.
     """
     api_key = os.environ.get("GOOGLE_API_KEY", "")
     if not api_key:
@@ -142,7 +142,7 @@ def _call_gemini(prompt: str, model: str) -> str:
             detail="GOOGLE_API_KEY is not configured on the server.",
         )
 
-    # Gemini REST endpoint: model name is part of the URL path
+    # Endpoint REST do Gemini: o nome do modelo faz parte do caminho da URL
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -167,6 +167,6 @@ def _call_gemini(prompt: str, model: str) -> str:
             detail=f"Gemini API error: {exc.response.status_code} — {exc.response.text}",
         )
 
-    # Extract the text from the first candidate's first part
+    # Extrai o texto da primeira parte do primeiro candidato
     data = response.json()
     return data["candidates"][0]["content"]["parts"][0]["text"]

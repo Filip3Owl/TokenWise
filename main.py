@@ -35,43 +35,43 @@ def _token_bar(saved: int, max_saved: int, width: int = 16) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tokenwise",
-        description="Optimize prompts to reduce token consumption for LLM APIs.",
+        description="Otimiza prompts para reduzir o consumo de tokens em APIs de LLM.",
     )
     source = parser.add_mutually_exclusive_group(required=False)
-    source.add_argument("prompt", nargs="?", help="Prompt text to optimize")
-    source.add_argument("--file", "-f", metavar="PATH", help="Read prompt from file")
+    source.add_argument("prompt", nargs="?", help="Texto do prompt a otimizar")
+    source.add_argument("--file", "-f", metavar="PATH", help="Lê o prompt de um arquivo")
 
     parser.add_argument(
         "--model", "-m",
         default="claude",
-        help="Target model (claude, gpt-4, gpt-4o, gpt-3.5, codex). Default: claude",
+        help="Modelo alvo (claude, gpt-4, gpt-4o, gpt-3.5, codex). Padrão: claude",
     )
     parser.add_argument(
         "--conservative", "-c",
         action="store_true",
-        help="Use only safe strategies (no stopword removal)",
+        help="Usa apenas estratégias seguras (sem remoção de stopwords)",
     )
     parser.add_argument(
         "--output", "-o",
         metavar="PATH",
-        help="Write optimized text to file instead of stdout",
+        help="Salva o texto otimizado em arquivo em vez de stdout",
     )
     parser.add_argument(
         "--lang", "-l",
         default="auto",
         choices=["auto", "en", "pt"],
-        help="Language of the prompt (auto, en, pt). Default: auto",
+        help="Idioma do prompt (auto, en, pt). Padrão: auto",
     )
     output_format = parser.add_mutually_exclusive_group()
     output_format.add_argument(
         "--no-report",
         action="store_true",
-        help="Print only the optimized text, no report",
+        help="Exibe apenas o texto otimizado, sem relatório",
     )
     output_format.add_argument(
         "--json",
         action="store_true",
-        help="Print machine-readable JSON output",
+        help="Exibe saída JSON legível por máquina",
     )
     return parser
 

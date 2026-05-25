@@ -1,12 +1,12 @@
 """
-SQLite persistence layer for per-client API tokens.
+Camada de persistência SQLite para tokens de API por cliente.
 
-Tokens are stored as SHA-256 hashes — the plaintext is returned only once at
-creation time and never persisted. Only the first 8 characters (token_prefix)
-are stored for display purposes in list/get responses.
+Os tokens são armazenados como hashes SHA-256 — o texto é retornado apenas uma vez
+no momento da criação e nunca persistido. Apenas os primeiros 8 caracteres (token_prefix)
+são armazenados para fins de exibição nas respostas de listagem/consulta.
 
-Uses stdlib sqlite3 and hashlib — no additional dependencies required.
-The DB file lives next to the project root (tokenwise.db).
+Usa stdlib sqlite3 e hashlib — sem dependências adicionais necessárias.
+O arquivo de banco de dados fica na raiz do projeto (tokenwise.db).
 """
 
 import hashlib
@@ -15,7 +15,7 @@ import secrets
 import sqlite3
 from pathlib import Path
 
-# TOKENWISE_DB_PATH env var allows Docker to point the DB to a mounted volume directory
+# A variável TOKENWISE_DB_PATH permite ao Docker apontar o banco para um diretório de volume montado
 DB_PATH = Path(os.environ.get("TOKENWISE_DB_PATH", Path(__file__).parent.parent / "tokenwise.db"))
 
 _PLAN_LIMITS = {"basic": 60, "pro": 300}
@@ -26,10 +26,10 @@ def _hash_token(token: str) -> str:
 
 
 def init_db() -> None:
-    """Create the clients table if it does not exist. Auto-migrates old schema."""
+    """Cria a tabela de clientes se não existir. Migra automaticamente esquemas antigos."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
-        # If the table exists with the old schema (no token_hash column), drop and recreate
+        # Se a tabela existir com o esquema antigo (sem coluna token_hash), dropa e recria
         columns = {row[1] for row in conn.execute("PRAGMA table_info(clients)")}
         if columns and "token_hash" not in columns:
             conn.execute("DROP TABLE clients")
@@ -48,7 +48,7 @@ def init_db() -> None:
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict:
-    """Returns the record with the token masked to its prefix for safe display."""
+    """Retorna o registro com o token mascarado ao seu prefixo para exibição segura."""
     return {
         "id": row["id"],
         "name": row["name"],
@@ -62,8 +62,8 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
 
 def create_client(name: str, plan: str = "basic", rate_limit: int | None = None) -> dict:
     """
-    Insert a new client and return the full record.
-    The plaintext token is included in the return value only here — it is never stored.
+    Insere um novo cliente e retorna o registro completo.
+    O token em texto é incluído no retorno apenas aqui — nunca é armazenado.
     """
     if plan not in _PLAN_LIMITS:
         raise ValueError(f"Unknown plan '{plan}'. Valid plans: {list(_PLAN_LIMITS)}")
@@ -75,12 +75,12 @@ def create_client(name: str, plan: str = "basic", rate_limit: int | None = None)
             (name, _hash_token(token), token[:8], plan, effective_limit),
         )
     record = get_client_by_token(token)
-    record["token"] = token  # expose plaintext once, at creation only
+    record["token"] = token  # expõe o texto uma única vez, apenas na criação
     return record
 
 
 def get_client_by_token(token: str) -> dict | None:
-    """Hash the token and return the matching active client record, or None."""
+    """Aplica hash no token e retorna o registro ativo correspondente, ou None."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -91,7 +91,7 @@ def get_client_by_token(token: str) -> dict | None:
 
 
 def list_clients() -> list[dict]:
-    """Return all client records ordered by creation date (newest first)."""
+    """Retorna todos os registros de clientes ordenados por data de criação (mais recente primeiro)."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
@@ -102,9 +102,9 @@ def list_clients() -> list[dict]:
 
 def update_client(token: str, plan: str | None = None, rate_limit: int | None = None) -> dict | None:
     """
-    Update plan and/or rate_limit for a client identified by plaintext token.
-    If only plan is changed and rate_limit is not given, resets rate_limit to the plan default.
-    Returns the updated record, or None if the token was not found.
+    Atualiza plan e/ou rate_limit de um cliente identificado pelo token em texto.
+    Se apenas o plan for alterado e rate_limit não for informado, redefine rate_limit para o padrão do plano.
+    Retorna o registro atualizado, ou None se o token não for encontrado.
     """
     parts, values = [], []
     if plan is not None:
@@ -127,7 +127,7 @@ def update_client(token: str, plan: str | None = None, rate_limit: int | None = 
 
 
 def revoke_client(token: str) -> bool:
-    """Soft-delete a client by marking it inactive. Returns True if a row was updated."""
+    """Soft-delete de um cliente marcando-o como inativo. Retorna True se uma linha foi atualizada."""
     with sqlite3.connect(DB_PATH) as conn:
         result = conn.execute(
             "UPDATE clients SET is_active = 0 WHERE token_hash = ? AND is_active = 1",

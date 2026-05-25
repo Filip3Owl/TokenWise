@@ -1,10 +1,10 @@
 """
-Authentication module for the TokenWise API.
+Módulo de autenticação da API TokenWise.
 
-Two distinct auth dependencies:
-- require_admin_auth: validates the master TOKENWISE_API_KEY env var (admin endpoints).
-- require_client_auth: looks up the Bearer token in the SQLite clients table and
-  enforces per-client rate limits via an in-memory sliding window.
+Duas dependências de autenticação distintas:
+- require_admin_auth: valida a variável de ambiente TOKENWISE_API_KEY mestre (endpoints admin).
+- require_client_auth: busca o Bearer token na tabela de clientes SQLite e
+  aplica rate limits por cliente via janela deslizante em memória.
 """
 
 import os
@@ -18,15 +18,15 @@ from .database import get_client_by_token
 
 _bearer = HTTPBearer()
 
-# Sliding-window store: client id -> list of UNIX timestamps within the last 60 s.
-# Works correctly for a single-process server; use Redis for multi-process deployments.
+# Armazém de janela deslizante: id do cliente -> lista de timestamps UNIX dos últimos 60 s.
+# Funciona corretamente em servidores de processo único; use Redis para implantações multi-processo.
 _rate_windows: dict[str, list[float]] = defaultdict(list)
 
 
 def require_admin_auth(credentials: HTTPAuthorizationCredentials = Depends(_bearer)) -> None:
     """
-    Validates the master TOKENWISE_API_KEY env var.
-    Used exclusively by /admin/* endpoints.
+    Valida a variável de ambiente TOKENWISE_API_KEY mestre.
+    Usada exclusivamente pelos endpoints /admin/*.
     """
     expected = os.environ.get("TOKENWISE_API_KEY", "")
     if not expected:
@@ -47,12 +47,12 @@ def require_client_auth(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict:
     """
-    Looks up the Bearer token in the clients table and enforces the per-client rate limit.
+    Busca o Bearer token na tabela de clientes e aplica o rate limit por cliente.
 
-    Returns the client record dict so endpoints can inspect plan/name if needed.
-    Raises:
-        HTTP 401 if the token is not found or revoked.
-        HTTP 429 if the client has exceeded its rate limit for the current minute.
+    Retorna o dicionário do registro do cliente para que endpoints possam inspecionar plan/name se necessário.
+    Levanta:
+        HTTP 401 se o token não for encontrado ou estiver revogado.
+        HTTP 429 se o cliente tiver excedido seu rate limit no minuto atual.
     """
     client = get_client_by_token(credentials.credentials)
     if client is None:
@@ -64,16 +64,16 @@ def require_client_auth(
 
     _enforce_rate_limit(str(client["id"]), client["rate_limit"])
 
-    # Make the client record available to the endpoint via request.state
+    # Disponibiliza o registro do cliente para o endpoint via request.state
     request.state.client = client
     return client
 
 
 def _enforce_rate_limit(token: str, rate_limit: int) -> None:
-    """Sliding-window rate limit: raises HTTP 429 if the client exceeded rate_limit req/min."""
+    """Rate limit por janela deslizante: levanta HTTP 429 se o cliente excedeu rate_limit req/min."""
     now = time.time()
     window = _rate_windows[token]
-    # Discard timestamps older than 60 seconds
+    # Descarta timestamps com mais de 60 segundos
     window[:] = [t for t in window if now - t < 60]
     if len(window) >= rate_limit:
         raise HTTPException(
