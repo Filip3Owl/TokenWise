@@ -16,6 +16,10 @@ _KEEP_PT = {
     "não", "nunca", "jamais", "só", "apenas", "muito", "deve", "precisa",
     "por favor", "sempre", "todo", "toda", "qualquer", "mais", "menos",
 }
+_KEEP_ES = {
+    "no", "nunca", "jamás", "solo", "muy", "debe", "necesita",
+    "por favor", "siempre", "todo", "toda", "cualquier", "más", "menos",
+}
 
 # Expressões de múltiplas palavras que devem ser mantidas intactas mesmo que cada palavra seja uma stopword
 _PROTECT_BIGRAMS_PT: set[tuple[str, str]] = {
@@ -25,25 +29,41 @@ _PROTECT_BIGRAMS_PT: set[tuple[str, str]] = {
     ("o", "que"),     # o que
     ("ao", "invés"),  # ao invés de
 }
+_PROTECT_BIGRAMS_ES: set[tuple[str, str]] = {
+    ("por", "qué"),     # por qué
+    ("por", "eso"),     # por eso
+    ("por", "favor"),   # por favor
+    ("lo", "que"),      # lo que
+    ("al", "menos"),    # al menos
+    ("sin", "embargo"), # sin embargo
+}
+
+_PROTECT_BIGRAMS: dict[str, set[tuple[str, str]]] = {
+    "pt": _PROTECT_BIGRAMS_PT,
+    "es": _PROTECT_BIGRAMS_ES,
+}
 
 _STOPWORDS_EN = stopwords.words("english")
 _STOPWORDS_PT = stopwords.words("portuguese")
+_STOPWORDS_ES = stopwords.words("spanish")
 
 _EFFECTIVE_STOPWORDS: dict[str, set[str]] = {
     "en": set(_STOPWORDS_EN) - _KEEP_EN,
     "pt": set(_STOPWORDS_PT) - _KEEP_PT,
+    "es": set(_STOPWORDS_ES) - _KEEP_ES,
 }
 
 _NLTK_LANG: dict[str, str] = {
     "en": "english",
     "pt": "portuguese",
+    "es": "spanish",
 }
 
 
 def remove_stopwords(text: str, lang: str = "en") -> str:
     nltk_lang = _NLTK_LANG.get(lang, "english")
     effective = _EFFECTIVE_STOPWORDS.get(lang, _EFFECTIVE_STOPWORDS["en"])
-    protect_bigrams = _PROTECT_BIGRAMS_PT if lang == "pt" else set()
+    protect_bigrams = _PROTECT_BIGRAMS.get(lang, set())
     sentences = sent_tokenize(text, language=nltk_lang)
     result = []
     for sentence in sentences:

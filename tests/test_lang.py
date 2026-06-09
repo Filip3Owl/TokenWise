@@ -79,3 +79,59 @@ def test_optimizer_portuguese_full_pipeline():
     assert result.final_tokens <= result.original_tokens
     assert result.optimized_text[0].isupper()
     assert " ," not in result.optimized_text
+
+
+# --- Espanhol ---
+
+def test_detect_language_spanish():
+    assert detect_language("Con el objetivo de utilizar este recurso.") == "es"
+
+
+def test_stopwords_spanish_removes_es_words():
+    text = "El sistema puede procesar los datos de la empresa."
+    result = remove_stopwords(text, lang="es")
+    assert len(result) < len(text)
+
+
+def test_stopwords_spanish_keeps_negation():
+    text = "No hagas eso nunca."
+    result = remove_stopwords(text, lang="es")
+    assert "no" in result.lower()
+
+
+def test_verbose_phrases_spanish():
+    strategy = VerbosePhrasesStrategy()
+    text = "Con el objetivo de mejorar el sistema, hacer uso de todas las herramientas."
+    result = strategy.apply(text, "claude", lang="es")
+    assert "para" in result.optimized_text.lower()
+    assert result.tokens_saved >= 0
+
+
+def test_verbose_phrases_english_unchanged_for_es_input():
+    strategy = VerbosePhrasesStrategy()
+    text = "In order to make use of this feature."
+    result = strategy.apply(text, "claude", lang="es")
+    assert "in order to" in result.optimized_text.lower()
+
+
+def test_optimizer_auto_detects_spanish():
+    opt = Optimizer()
+    result = opt.optimize(
+        "Con el objetivo de utilizar este recurso, por favor proporcione asistencia al usuario."
+    )
+    assert result.lang == "es"
+
+
+def test_optimizer_lang_override_spanish():
+    opt = Optimizer()
+    result = opt.optimize("Hello world this is a test.", lang="es")
+    assert result.lang == "es"
+
+
+def test_optimizer_spanish_full_pipeline():
+    opt = Optimizer()
+    text = "Con el objetivo de utilizar este recurso, por favor proporcione asistencia al usuario del sistema."
+    result = opt.optimize(text, lang="es")
+    assert result.final_tokens <= result.original_tokens
+    assert result.optimized_text[0].isupper()
+    assert " ," not in result.optimized_text

@@ -93,3 +93,48 @@ def test_json_flag_token_fields():
     tokens = data["tokens"]
     assert tokens["saved"] == tokens["original"] - tokens["final"]
     assert 0.0 <= data["tokens"]["savings_pct"] <= 100.0
+
+
+def test_diff_flag_exits_ok():
+    result = run("--diff", "In order to succeed, make use of all tools.")
+    assert result.returncode == 0
+
+
+def test_diff_flag_no_report_noise():
+    result = run("--diff", "In order to succeed, make use of all tools.")
+    assert result.returncode == 0
+    assert "TokenWise Report" not in result.stdout
+
+
+def test_diff_flag_shows_diff_panel():
+    result = run("--diff", "In order to succeed, make use of all tools.")
+    assert "Diff" in result.stdout
+
+
+def test_diff_flag_shows_removed_phrases():
+    result = run("--diff", "In order to succeed, make use of all tools.")
+    # verbose phrases must appear in the diff (shown as removed)
+    assert "in order to" in result.stdout.lower()
+    assert "make use of" in result.stdout.lower()
+
+
+def test_diff_flag_shows_replacements():
+    result = run("--diff", "In order to succeed, make use of all tools.")
+    # replacements must also appear in the diff
+    assert "use" in result.stdout
+
+
+def test_diff_flag_no_changes():
+    # a prompt with nothing to optimize should report no changes
+    result = run("--diff", "short prompt")
+    assert result.returncode == 0
+
+
+def test_diff_flag_mutually_exclusive_with_json():
+    result = run("--diff", "--json", "In order to succeed.")
+    assert result.returncode != 0
+
+
+def test_diff_flag_mutually_exclusive_with_no_report():
+    result = run("--diff", "--no-report", "In order to succeed.")
+    assert result.returncode != 0

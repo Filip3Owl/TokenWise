@@ -1,14 +1,14 @@
 <p align="center">
   <strong>Reduza o consumo de tokens de LLMs sem perder o significado do prompt.</strong><br/>
-  Otimizador com NLP para prompts do Claude, GPT-4 e Gemini — inglês e português.
+  Otimizador com NLP para prompts do Claude, GPT-4 e Gemini — inglês, português e espanhol.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.14-blue?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://img.shields.io/badge/models-Claude%20%7C%20GPT--4%20%7C%20Gemini-6366f1?style=flat-square"/>
-  <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT-green?style=flat-square"/>
-  <img src="https://img.shields.io/badge/tests-114%20passing-brightgreen?style=flat-square"/>
+  <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT%20%7C%20ES-green?style=flat-square"/>
+  <img src="https://img.shields.io/badge/tests-130%20passing-brightgreen?style=flat-square"/>
 </p>
 
 ---
@@ -29,7 +29,7 @@ Cada prompt passa por cinco estratégias em sequência, seguidas por um pós-pro
 | Etapa | Estratégia | Descrição |
 |---|---|---|
 | 1 | `whitespace_collapse` | Remove espaços redundantes e linhas em branco |
-| 2 | `verbose_phrases` | Substitui expressões prolixas — padrões para EN e PT |
+| 2 | `verbose_phrases` | Substitui expressões prolixas — padrões para EN, PT e ES |
 | 3 | `redundancy_removal` | Elimina frases duplicadas |
 | 4 | `stopword_removal` | Remove palavras funcionais de baixo valor (NLTK) |
 | ✦ | `postprocessor` | Corrige espaçamento de pontuação, capitalização e apóstrofos |
@@ -40,11 +40,11 @@ Dois presets integrados: **padrão** (todas as estratégias) e **conservador** (
 
 O idioma é detectado automaticamente via `langdetect`. Use `--lang` para forçar um idioma específico.
 
-| Recurso | Inglês | Português |
-|---|---|---|
-| Remoção de stopwords | ✓ 179 palavras | ✓ 207 palavras |
-| Substituição de frases prolixas | ✓ 18 padrões | ✓ 22 padrões |
-| Remoção de redundâncias | ✓ | ✓ |
+| Recurso | Inglês | Português | Espanhol |
+|---|---|---|---|
+| Remoção de stopwords | ✓ 187 palavras | ✓ 203 palavras | ✓ 309 palavras |
+| Substituição de frases prolixas | ✓ 18 padrões | ✓ 22 padrões | ✓ 22 padrões |
+| Remoção de redundâncias | ✓ | ✓ | ✓ |
 
 ## Instalação
 
@@ -68,6 +68,7 @@ tokenwise "In order to make use of this feature, please be advised that you shou
 
 # Forçar um idioma
 tokenwise --lang pt "Com o objetivo de utilizar este recurso."
+tokenwise --lang es "Con el objetivo de utilizar este recurso."
 tokenwise --lang en "Your prompt here."
 
 # Ler de um arquivo
@@ -84,6 +85,9 @@ tokenwise --file prompt.txt --output optimized.txt
 
 # Exibir apenas o resultado, sem relatório
 tokenwise --no-report "your prompt here"
+
+# Exibir as alterações feitas (removidos em vermelho, substituições em verde)
+tokenwise --diff "your prompt here"
 
 # Saída JSON legível por máquina (para scripts / CI)
 tokenwise --json "your prompt here"
@@ -280,7 +284,7 @@ Modelos suportados: `claude-*` (requer `ANTHROPIC_API_KEY`) · `gpt-*` (requer `
 |---|---|
 | `text` | Prompt a otimizar — máximo de 10.000 caracteres (obrigatório) |
 | `model` | Modelo alvo (padrão: `claude-sonnet-4-6`) |
-| `lang` | `"auto"`, `"en"` ou `"pt"` (padrão: `"auto"`) |
+| `lang` | `"auto"`, `"en"`, `"pt"` ou `"es"` (padrão: `"auto"`) |
 | `conservative` | Ignorar remoção de stopwords (padrão: `false`) |
 
 ### Planos e limites de requisições
@@ -309,7 +313,7 @@ Os limites são aplicados por token de cliente (janela deslizante), não por IP.
 python -m pytest tests/ -v
 ```
 
-114 testes cobrindo tokenizer, NLP, estratégias, precificação, pós-processador, detecção de idioma, pipeline do otimizador, integração com a CLI (incluindo `--json`), API REST (autenticação, rate limiting, limite de payload, `/optimize`, `/chat` com LLM simulado) e endpoints de administração.
+130 testes cobrindo tokenizer, NLP, estratégias, precificação, pós-processador, detecção de idioma (EN/PT/ES), pipeline do otimizador, integração com a CLI (incluindo `--json` e `--diff`), API REST (autenticação, rate limiting, limite de payload, `/optimize`, `/chat` com LLM simulado) e endpoints de administração.
 
 ## Estrutura do projeto
 
@@ -325,15 +329,13 @@ TokenWise/
 │   └── schemas.py         # Modelos Pydantic de requisição/resposta
 ├── optimizer/
 │   ├── core.py            # Pipeline do otimizador + detecção de idioma
-│   ├── strategies.py      # Estratégias plugáveis com listas de frases EN/PT
-│   ├── nlp.py             # Processamento NLTK (en + pt)
+│   ├── strategies.py      # Estratégias plugáveis com listas de frases EN/PT/ES
+│   ├── nlp.py             # Processamento NLTK (en + pt + es)
 │   ├── tokenizer.py       # Contagem de tokens (tiktoken)
 │   ├── pricing.py         # Cálculo de custo em USD por modelo
 │   ├── postprocessor.py   # Correção de qualidade da saída (pontuação, capitalização)
 │   └── models.py          # Tipos de dados
 ├── tests/
-├── assets/
-│   └── tokenwise_logo.svg
 ├── main.py
 ├── pyproject.toml
 └── requirements.txt
@@ -350,10 +352,8 @@ TokenWise/
   - Rate limiting por janela deslizante por cliente
   - Tokens armazenados como hashes SHA-256 — texto exibido apenas na criação
 - Flag `--json` — saída JSON legível por máquina para scripts e pipelines de CI ✓
-
-### Planejado
-- Flag `--diff` — exibir exatamente o que mudou entre o original e o otimizado
-- Suporte ao idioma espanhol (`es`)
+- Flag `--diff` — exibe as alterações palavra a palavra (removidos em vermelho, substituições em verde) ✓
+- Suporte ao espanhol (`es`) — stopwords (309 palavras), 22 frases prolixas, detecção automática ✓
 
 ## Licença
 

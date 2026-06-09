@@ -7,7 +7,7 @@ from .pricing import calculate_cost
 from .postprocessor import postprocess
 from .codeblock import extract as extract_code, restore as restore_code
 
-_SUPPORTED_LANGS = {"en", "pt"}
+_SUPPORTED_LANGS = {"en", "pt", "es"}
 
 
 def detect_language(text: str) -> str:

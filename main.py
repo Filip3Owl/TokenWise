@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import difflib
 import json
 import sys
 
@@ -59,8 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--lang", "-l",
         default="auto",
-        choices=["auto", "en", "pt"],
-        help="Idioma do prompt (auto, en, pt). Padrão: auto",
+        choices=["auto", "en", "pt", "es"],
+        help="Idioma do prompt (auto, en, pt, es). Padrão: auto",
     )
     output_format = parser.add_mutually_exclusive_group()
     output_format.add_argument(
@@ -73,13 +74,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Exibe saída JSON legível por máquina",
     )
+    output_format.add_argument(
+        "--diff",
+        action="store_true",
+        help="Exibe as alterações feitas no prompt (removidos em vermelho, substituições em verde)",
+    )
     return parser
 
 
 def print_report(result) -> None:
     price = get_price(result.model)
     savings_color = "green" if result.tokens_saved > 0 else "yellow"
-    lang_label = {"en": "English", "pt": "Português"}.get(result.lang, result.lang)
+    lang_label = {"en": "English", "pt": "Português", "es": "Español"}.get(result.lang, result.lang)
 
     meta = (
         f"[dim]Model[/dim]     [bold]{result.model}[/bold]   "
@@ -162,6 +168,47 @@ def print_json(result) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def _build_diff_markup(original: str, optimized: str) -> str:
+    orig_words = original.split()
+    opt_words = optimized.split()
+    matcher = difflib.SequenceMatcher(None, orig_words, opt_words, autojunk=False)
+    parts = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            parts.append(" ".join(orig_words[i1:i2]))
+        elif tag == "delete":
+            parts.append(f"[red strike]{' '.join(orig_words[i1:i2])}[/red strike]")
+        elif tag == "insert":
+            parts.append(f"[green]{' '.join(opt_words[j1:j2])}[/green]")
+        elif tag == "replace":
+            parts.append(
+                f"[red strike]{' '.join(orig_words[i1:i2])}[/red strike]"
+                f" [green]{' '.join(opt_words[j1:j2])}[/green]"
+            )
+    return " ".join(p for p in parts if p)
+
+
+def print_diff(result) -> None:
+    if result.tokens_saved == 0:
+        console.print("[yellow]Nenhuma alteração — prompt já está otimizado.[/yellow]")
+        return
+
+    savings_color = "green" if result.tokens_saved > 0 else "yellow"
+    legend = (
+        f"[red strike]removido[/red strike]  [green]substituição[/green]"
+        f"  [dim]·[/dim]  "
+        f"[{savings_color} bold]-{result.tokens_saved} tokens ({result.savings_pct:.1f}%)[/{savings_color} bold]"
+    )
+    markup = _build_diff_markup(result.original_text, result.optimized_text)
+
+    console.print(Panel(
+        Group(legend, "", markup),
+        title="[bold blue]TokenWise Diff[/bold blue]",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
@@ -183,7 +230,7 @@ def main() -> None:
 
     optimizer = Optimizer(conservative=args.conservative)
 
-    if args.json:
+    if args.json or args.diff:
         result = optimizer.optimize(text, model=args.model, lang=args.lang)
     else:
         with console.status("Optimizing...", spinner="dots"):
@@ -193,6 +240,8 @@ def main() -> None:
         print_json(result)
     elif args.no_report:
         print(result.optimized_text)
+    elif args.diff:
+        print_diff(result)
     else:
         print_report(result)
 

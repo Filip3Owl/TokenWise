@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Gemini). Supports English and Portuguese. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
+Python CLI tool and REST API that analyzes and optimizes text prompts to reduce token consumption when calling LLM APIs (Claude, GPT-4, Gemini). Supports English, Portuguese, and Spanish. Uses NLTK for linguistic processing, `tiktoken` for accurate token counting, `langdetect` for automatic language detection, and `rich` for CLI output.
 
 Phases A, B, and C are complete. The REST API (FastAPI) exposes `POST /optimize` and `POST /chat`. The `/chat` endpoint acts as a transparent middleware — it optimizes the prompt and forwards it to Anthropic, OpenAI, or Google Gemini, returning the LLM response alongside savings metadata. Protected by per-client Bearer token auth (SQLite) with per-client rate limiting (basic=60 req/min, pro=300 req/min). Admin endpoints at `/admin/clients` manage client tokens and are protected by the master `TOKENWISE_API_KEY`.
 
@@ -24,8 +24,10 @@ Python 3.14 · key dependencies: `nltk`, `tiktoken`, `langdetect`, `rich`, `fast
 tokenwise "Your prompt here"
 tokenwise --file prompt.txt --model claude-sonnet-4-6
 tokenwise --lang pt "Seu prompt aqui"
+tokenwise --lang es "Su prompt aquí"
 tokenwise --conservative "prompt"
 tokenwise --no-report "prompt"
+tokenwise --diff "prompt"            # word-level diff (removed in red, replacements in green)
 tokenwise --json "prompt"            # machine-readable JSON output
 echo "prompt" | tokenwise            # stdin pipe
 
@@ -73,8 +75,8 @@ api/
 optimizer/
   core.py              — Optimizer class: language detection + strategy pipeline
   tokenizer.py         — Token counting via tiktoken (model-aware)
-  nlp.py               — NLTK processing: stopwords, redundancy (en + pt)
-  strategies.py        — Pluggable Strategy classes; verbose phrase lists for en and pt
+  nlp.py               — NLTK processing: stopwords, redundancy (en + pt + es)
+  strategies.py        — Pluggable Strategy classes; verbose phrase lists for en, pt, and es
   postprocessor.py     — Output quality fix: punctuation spacing, capitalization, apostrophes
   pricing.py           — Per-model USD cost table + calculate_cost() / format_cost()
   models.py            — Dataclasses: OptimizationResult, StrategyResult
@@ -97,7 +99,7 @@ requirements.txt
 ## Optimization Pipeline
 
 Each call to `Optimizer.optimize(text, model, lang)` in `core.py`:
-1. **Language detection** — `langdetect` auto-detects `en`/`pt`; overridden by `lang` arg
+1. **Language detection** — `langdetect` auto-detects `en`/`pt`/`es`; overridden by `lang` arg
 2. **Code block extraction** — `codeblock.extract()` removes code blocks before optimization
 3. **Strategy chain** — four `Strategy` objects applied in order, each returning `StrategyResult`
 4. **Postprocessing** — `postprocessor.postprocess()` fixes punctuation, capitalization, apostrophes
@@ -116,11 +118,11 @@ Two presets in `strategies.py`: `DEFAULT_STRATEGIES` (all 4) and `CONSERVATIVE_S
 
 ### Language support
 
-| Feature | English | Portuguese |
-|---|---|---|
-| Stopword removal | ✓ 179 effective words | ✓ 207 effective words |
-| Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns |
-| Redundancy removal | ✓ | ✓ |
+| Feature | English | Portuguese | Spanish |
+|---|---|---|---|
+| Stopword removal | ✓ 187 effective words | ✓ 203 effective words | ✓ 309 effective words |
+| Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns | ✓ 22 patterns |
+| Redundancy removal | ✓ | ✓ | ✓ |
 
 ## Model Token Encoding
 
@@ -159,9 +161,19 @@ Per-client API tokens with individual rate limits stored in SQLite (`tokenwise.d
 ### Done: --json CLI flag ✓
 Machine-readable JSON output for scripting and CI pipelines.
 - Fields: `model`, `lang`, `original_text`, `optimized_text`, `tokens`, `cost_usd`, `strategies`
-- Mutually exclusive with `--no-report`
+- Mutually exclusive with `--no-report` and `--diff`
 - Spinner suppressed when `--json` is active (stdout stays clean)
 
-### Planned features
-- `--diff` CLI flag — show what changed
-- Spanish (`es`) language support
+### Done: --diff CLI flag ✓
+Word-level diff showing exactly what changed between the original and optimized prompt.
+- Removed words/phrases shown in red strikethrough; replacements in green
+- Uses `difflib.SequenceMatcher` (stdlib — no new dependency)
+- Mutually exclusive with `--no-report` and `--json`
+- Spinner suppressed when `--diff` is active (stdout stays clean)
+
+### Done: Spanish (es) language support ✓
+Full Spanish pipeline on par with English and Portuguese.
+- Stopword removal: 309 effective words (NLTK `stopwords.words("spanish")`)
+- Verbose phrase replacement: 22 patterns (`con el objetivo de` → `para`, `hacer uso de` → `usar`, etc.)
+- Bigram protection: `por qué`, `sin embargo`, `al menos`, `por favor`, etc.
+- Auto-detection via `langdetect`; force with `--lang es`

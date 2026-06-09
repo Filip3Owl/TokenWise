@@ -95,10 +95,40 @@ class VerbosePhrasesStrategy(Strategy):
         (r"\bcom base em\b", "baseado em"),
     ]
 
+    _REPLACEMENTS_ES: list[tuple[str, str]] = [
+        (r"\bcon el objetivo de\b", "para"),
+        (r"\bdebido al hecho de que\b", "porque"),
+        (r"\ben este momento\b", "ahora"),
+        (r"\bcon la finalidad de\b", "para"),
+        (r"\ben caso de que\b", "si"),
+        (r"\bes importante señalar que\b", "nota:"),
+        (r"\bpor favor tenga en cuenta que\b", ""),
+        (r"\bhacer uso de\b", "usar"),
+        (r"\bprestar asistencia a\b", "ayudar"),
+        (r"\btiene la capacidad de\b", "puede"),
+        (r"\bes capaz de\b", "puede"),
+        (r"\ba excepción de\b", "excepto"),
+        (r"\bun gran número de\b", "muchos"),
+        (r"\bun pequeño número de\b", "pocos"),
+        (r"\bde forma regular\b", "regularmente"),
+        (r"\bcon respecto a\b", "sobre"),
+        (r"\ba pesar del hecho de que\b", "aunque"),
+        (r"\ben relación a\b", "sobre"),
+        (r"\bpor medio de\b", "mediante"),
+        (r"\bcon base en\b", "basado en"),
+        (r"\ba fin de\b", "para"),
+        (r"\ben virtud de\b", "por"),
+    ]
+
     def apply(self, text: str, model: str, lang: str = "en") -> StrategyResult:
         before = count_tokens(text, model)
         optimized = text
-        replacements = self._REPLACEMENTS_PT if lang == "pt" else self._REPLACEMENTS_EN
+        if lang == "pt":
+            replacements = self._REPLACEMENTS_PT
+        elif lang == "es":
+            replacements = self._REPLACEMENTS_ES
+        else:
+            replacements = self._REPLACEMENTS_EN
         for pattern, replacement in replacements:
             optimized = re.sub(pattern, replacement, optimized, flags=re.IGNORECASE)
         optimized = nlp.collapse_whitespace(optimized)
