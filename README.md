@@ -1,6 +1,6 @@
 <p align="center">
-  <strong>Reduza o consumo de tokens de LLMs sem perder o significado do prompt.</strong><br/>
-  Otimizador com NLP para prompts do Claude, GPT-4 e Gemini — inglês, português e espanhol.
+  <strong>Reduce LLM token usage without losing the meaning of your prompt.</strong><br/>
+  An NLP-powered prompt optimizer for Claude, GPT-4 and Gemini, supporting English, Portuguese and Spanish.
 </p>
 
 <p align="center">
@@ -13,40 +13,40 @@
 
 ---
 
-## O que faz
+## What it does
 
-O TokenWise analisa seus prompts com técnicas de NLP e aplica uma cadeia de estratégias de otimização para reduzir a contagem de tokens — diminuindo os custos de API enquanto preserva a intenção. O idioma é detectado automaticamente.
+TokenWise analyzes your prompts with NLP techniques and applies a chain of optimization strategies to reduce the token count, lowering API costs while preserving intent. The language is detected automatically.
 
 ```
 Original   →  21 tokens   $0.000063
-Otimizado  →   7 tokens   $0.000021   (66,7% de economia)
+Optimized  →   7 tokens   $0.000021   (66.7% savings)
 ```
 
 ## Pipeline
 
-Cada prompt passa por cinco estratégias em sequência, seguidas por um pós-processador que restaura pontuação, capitalização e contrações corretas.
+Each prompt goes through five strategies in sequence, followed by a post-processor that restores correct punctuation, capitalization and contractions.
 
-| Etapa | Estratégia | Descrição |
+| Step | Strategy | Description |
 |---|---|---|
-| 1 | `whitespace_collapse` | Remove espaços redundantes e linhas em branco |
-| 2 | `verbose_phrases` | Substitui expressões prolixas — padrões para EN, PT e ES |
-| 3 | `redundancy_removal` | Elimina frases duplicadas |
-| 4 | `stopword_removal` | Remove palavras funcionais de baixo valor (NLTK) |
-| ✦ | `postprocessor` | Corrige espaçamento de pontuação, capitalização e apóstrofos |
+| 1 | `whitespace_collapse` | Removes redundant spaces and blank lines |
+| 2 | `verbose_phrases` | Replaces wordy expressions, with patterns for EN, PT and ES |
+| 3 | `redundancy_removal` | Removes duplicate sentences |
+| 4 | `stopword_removal` | Removes low-value function words (NLTK) |
+| ✦ | `postprocessor` | Fixes punctuation spacing, capitalization and apostrophes |
 
-Dois presets integrados: **padrão** (todas as estratégias) e **conservador** (apenas espaços + frases prolixas + redundância).
+Two built-in presets: **default** (all strategies) and **conservative** (only whitespace + verbose phrases + redundancy).
 
-## Suporte a idiomas
+## Language support
 
-O idioma é detectado automaticamente via `langdetect`. Use `--lang` para forçar um idioma específico.
+The language is detected automatically via `langdetect`. Use `--lang` to force a specific language.
 
-| Recurso | Inglês | Português | Espanhol |
+| Feature | English | Portuguese | Spanish |
 |---|---|---|---|
-| Remoção de stopwords | ✓ 187 palavras | ✓ 203 palavras | ✓ 309 palavras |
-| Substituição de frases prolixas | ✓ 18 padrões | ✓ 22 padrões | ✓ 22 padrões |
-| Remoção de redundâncias | ✓ | ✓ | ✓ |
+| Stopword removal | ✓ 187 words | ✓ 203 words | ✓ 309 words |
+| Verbose phrase replacement | ✓ 18 patterns | ✓ 22 patterns | ✓ 22 patterns |
+| Redundancy removal | ✓ | ✓ | ✓ |
 
-## Instalação
+## Installation
 
 ```bash
 git clone https://github.com/Filip3Owl/TokenWise.git
@@ -56,48 +56,48 @@ source venv/bin/activate
 pip install -e .
 ```
 
-Isso instala `tokenwise` como um comando global — sem necessidade de chamar `python main.py` diretamente.
+This installs `tokenwise` as a global command, so there is no need to call `python main.py` directly.
 
-> **Nota no macOS:** Os dados do NLTK são baixados automaticamente na primeira execução.
+> **macOS note:** NLTK data is downloaded automatically on the first run.
 
-## Uso
+## Usage
 
 ```bash
-# Otimizar um prompt (idioma detectado automaticamente)
+# Optimize a prompt (language detected automatically)
 tokenwise "In order to make use of this feature, please be advised that you should provide assistance to the user."
 
-# Forçar um idioma
+# Force a language
 tokenwise --lang pt "Com o objetivo de utilizar este recurso."
 tokenwise --lang es "Con el objetivo de utilizar este recurso."
 tokenwise --lang en "Your prompt here."
 
-# Ler de um arquivo
+# Read from a file
 tokenwise --file prompt.txt
 
-# Segmentar um modelo específico
+# Target a specific model
 tokenwise --model gpt-4 "your prompt here"
 
-# Modo conservador (sem remoção de stopwords ou lematização)
+# Conservative mode (no stopword removal or lemmatization)
 tokenwise --conservative "your prompt here"
 
-# Salvar a saída otimizada em arquivo
+# Save the optimized output to a file
 tokenwise --file prompt.txt --output optimized.txt
 
-# Exibir apenas o resultado, sem relatório
+# Show only the result, without the report
 tokenwise --no-report "your prompt here"
 
-# Exibir as alterações feitas (removidos em vermelho, substituições em verde)
+# Show the changes made (removals in red, replacements in green)
 tokenwise --diff "your prompt here"
 
-# Saída JSON legível por máquina (para scripts / CI)
+# Machine-readable JSON output (for scripts / CI)
 tokenwise --json "your prompt here"
 
-# Enviar texto via stdin
+# Pipe text via stdin
 echo "your prompt here" | tokenwise
 cat prompt.txt | tokenwise
 ```
 
-## Exemplo de saída
+## Sample output
 
 ```
 ╭────────────────────────────── TokenWise Report ──────────────────────────────╮
@@ -110,9 +110,9 @@ cat prompt.txt | tokenwise
 ╰──────────────────────────────────────────────────────────────────────────────╯
  Strategy                 Savings            Tokens     Status
 ─────────────────────────────────────────────────────────────────
- Whitespace Collapse      ░░░░░░░░░░░░░░░░        —   no change
+ Whitespace Collapse      ░░░░░░░░░░░░░░░░        -   no change
  Verbose Phrases          ███████████████░      -10    applied
- Redundancy Removal       ░░░░░░░░░░░░░░░░        —   no change
+ Redundancy Removal       ░░░░░░░░░░░░░░░░        -   no change
  Stopword Removal         ████████████████      -11    applied
 ╭────────────────────────────── Optimized Prompt ──────────────────────────────╮
 │                                                                              │
@@ -122,77 +122,77 @@ cat prompt.txt | tokenwise
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-## Modelos suportados
+## Supported models
 
 **Anthropic**
 
-| Modelo | Preço de entrada |
+| Model | Input price |
 |---|---|
-| `claude-opus-4-7` | $15,00 / 1M tokens |
-| `claude-sonnet-4-6` | $3,00 / 1M tokens |
-| `claude-haiku-4-5` | $0,80 / 1M tokens |
+| `claude-opus-4-7` | $15.00 / 1M tokens |
+| `claude-sonnet-4-6` | $3.00 / 1M tokens |
+| `claude-haiku-4-5` | $0.80 / 1M tokens |
 
 **OpenAI**
 
-| Modelo | Preço de entrada |
+| Model | Input price |
 |---|---|
-| `gpt-4o` | $2,50 / 1M tokens |
-| `gpt-4` | $30,00 / 1M tokens |
-| `gpt-4o-mini` | $0,15 / 1M tokens |
-| `gpt-3.5-turbo` | $0,50 / 1M tokens |
-| `codex` / `text-davinci` | $2,00 / 1M tokens |
+| `gpt-4o` | $2.50 / 1M tokens |
+| `gpt-4` | $30.00 / 1M tokens |
+| `gpt-4o-mini` | $0.15 / 1M tokens |
+| `gpt-3.5-turbo` | $0.50 / 1M tokens |
+| `codex` / `text-davinci` | $2.00 / 1M tokens |
 
 **Google Gemini**
 
-| Modelo | Preço de entrada |
+| Model | Input price |
 |---|---|
-| `gemini-3-flash-preview` | $0,50 / 1M tokens |
-| `gemini-2.0-flash` | $0,10 / 1M tokens |
-| `gemini-1.5-flash` | $0,075 / 1M tokens |
-| `gemini-1.5-pro` | $1,25 / 1M tokens |
+| `gemini-3-flash-preview` | $0.50 / 1M tokens |
+| `gemini-2.0-flash` | $0.10 / 1M tokens |
+| `gemini-1.5-flash` | $0.075 / 1M tokens |
+| `gemini-1.5-pro` | $1.25 / 1M tokens |
 
-O matching por prefixo é suportado — `claude`, `gpt-4`, `gemini-3`, `gemini` são resolvidos automaticamente.
+Prefix matching is supported: `claude`, `gpt-4`, `gemini-3` and `gemini` are resolved automatically.
 
-## API REST
+## REST API
 
-O TokenWise expõe um servidor FastAPI para que qualquer aplicação possa otimizar prompts — ou utilizá-lo como proxy transparente de LLM — via HTTP.
+TokenWise exposes a FastAPI server so that any application can optimize prompts, or use it as a transparent LLM proxy, over HTTP.
 
 ```bash
-# Copiar e preencher suas chaves
+# Copy the template and fill in your keys
 cp .env.example .env
 
-# Iniciar o servidor
+# Start the server
 uvicorn api.main:app --reload
 ```
 
-Documentação interativa disponível em `http://127.0.0.1:8000/docs`.
+Interactive documentation is available at `http://127.0.0.1:8000/docs`.
 
-### Modelo de autenticação
+### Authentication model
 
-O TokenWise usa um sistema de autenticação em dois níveis:
+TokenWise uses a two-tier authentication system:
 
-| Tipo de token | Usado para | Configurado via |
+| Token type | Used for | Configured via |
 |---|---|---|
-| **Chave mestre** (`TOKENWISE_API_KEY`) | Apenas endpoints `/admin/*` | variável de ambiente |
-| **Token de cliente** | `/optimize` e `/chat` | criado via `POST /admin/clients` |
+| **Master key** (`TOKENWISE_API_KEY`) | `/admin/*` endpoints only | environment variable |
+| **Client token** | `/optimize` and `/chat` | created via `POST /admin/clients` |
 
-Comece criando um token de cliente com a chave mestre e, em seguida, use esse token nas chamadas à API.
+Start by creating a client token with the master key, then use that token for your API calls.
 
 ```bash
-# Passo 1 — criar um cliente (executar uma vez)
+# Step 1: create a client (run once)
 curl -X POST http://127.0.0.1:8000/admin/clients \
   -H "Authorization: Bearer $TOKENWISE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app", "plan": "basic"}'
-# → retorna um campo token — salve-o
+# → returns a token field, save it
 
-# Passo 2 — usar o token de cliente em todas as chamadas à API
+# Step 2: use the client token on every API call
 Authorization: Bearer <client-token>
 ```
 
 ---
 
-**`POST /admin/clients`** — cria um novo token de cliente.
+**`POST /admin/clients`**: creates a new client token.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/admin/clients \
@@ -205,7 +205,7 @@ curl -X POST http://127.0.0.1:8000/admin/clients \
 {
   "id": 1,
   "name": "my-app",
-  "token": "abc123XYZ...(texto completo — salve agora, não será exibido novamente)",
+  "token": "abc123XYZ...(full text, save it now, it will not be shown again)",
   "plan": "pro",
   "rate_limit": 300,
   "is_active": true,
@@ -213,17 +213,17 @@ curl -X POST http://127.0.0.1:8000/admin/clients \
 }
 ```
 
-> **Salve o token imediatamente.** Ele é retornado completo apenas na criação. Chamadas subsequentes a `GET /admin/clients` exibem apenas os primeiros 8 caracteres (`abc123XY...`) — o valor completo nunca é armazenado no banco de dados.
+> **Save the token immediately.** It is only returned in full at creation time. Later calls to `GET /admin/clients` show only the first 8 characters (`abc123XY...`), and the full value is never stored in the database.
 
-**`GET /admin/clients`** — lista todos os clientes.
+**`GET /admin/clients`**: lists all clients.
 
-**`PATCH /admin/clients/{token}`** — atualiza plano ou limite de requisições.
+**`PATCH /admin/clients/{token}`**: updates the plan or rate limit.
 
-**`DELETE /admin/clients/{token}`** — revoga um token de cliente.
+**`DELETE /admin/clients/{token}`**: revokes a client token.
 
 ---
 
-**`POST /optimize`** — otimiza um prompt sem chamar nenhum LLM.
+**`POST /optimize`**: optimizes a prompt without calling any LLM.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/optimize \
@@ -251,7 +251,7 @@ curl -X POST http://127.0.0.1:8000/optimize \
 
 ---
 
-**`POST /chat`** — otimiza e encaminha ao LLM upstream, retornando sua resposta.
+**`POST /chat`**: optimizes the prompt, forwards it to the upstream LLM and returns its response.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/chat \
@@ -272,69 +272,69 @@ curl -X POST http://127.0.0.1:8000/chat \
 }
 ```
 
-Modelos suportados: `claude-*` (requer `ANTHROPIC_API_KEY`) · `gpt-*` (requer `OPENAI_API_KEY`) · `gemini-*` (requer `GOOGLE_API_KEY`)
+Supported models: `claude-*` (requires `ANTHROPIC_API_KEY`) · `gpt-*` (requires `OPENAI_API_KEY`) · `gemini-*` (requires `GOOGLE_API_KEY`)
 
 ---
 
-**`GET /health`** — retorna `{"status": "ok"}`.
+**`GET /health`**: returns `{"status": "ok"}`.
 
-### Campos da requisição
+### Request fields
 
-| Campo | Descrição |
+| Field | Description |
 |---|---|
-| `text` | Prompt a otimizar — máximo de 10.000 caracteres (obrigatório) |
-| `model` | Modelo alvo (padrão: `claude-sonnet-4-6`) |
-| `lang` | `"auto"`, `"en"`, `"pt"` ou `"es"` (padrão: `"auto"`) |
-| `conservative` | Ignorar remoção de stopwords (padrão: `false`) |
+| `text` | Prompt to optimize, up to 10,000 characters (required) |
+| `model` | Target model (default: `claude-sonnet-4-6`) |
+| `lang` | `"auto"`, `"en"`, `"pt"` or `"es"` (default: `"auto"`) |
+| `conservative` | Skip stopword removal (default: `false`) |
 
-### Planos e limites de requisições
+### Plans and rate limits
 
-| Plano | Limite | Configurado via |
+| Plan | Limit | Configured via |
 |---|---|---|
-| `basic` (padrão) | 60 req / min | `"plan": "basic"` |
+| `basic` (default) | 60 req / min | `"plan": "basic"` |
 | `pro` | 300 req / min | `"plan": "pro"` |
-| Personalizado | qualquer valor de 1 a 10.000 | `"rate_limit": <n>` |
+| Custom | any value from 1 to 10,000 | `"rate_limit": <n>` |
 
-Os limites são aplicados por token de cliente (janela deslizante), não por IP.
+Limits are applied per client token (sliding window), not per IP.
 
-### Segurança
+### Security
 
-| Proteção | Detalhe |
+| Protection | Detail |
 |---|---|
-| Autenticação admin | Variável de ambiente `TOKENWISE_API_KEY` mestre |
-| Autenticação de cliente | Bearer token por cliente — armazenado como hash SHA-256, texto nunca persistido |
-| Rate limiting | Janela deslizante por cliente (baseado no plano ou personalizado) |
-| Limite de payload | Máximo de 10.000 caracteres |
-| Timeout de LLM | 30 segundos |
+| Admin authentication | Master `TOKENWISE_API_KEY` environment variable |
+| Client authentication | Per-client bearer token, stored as a SHA-256 hash; plaintext is never persisted |
+| Rate limiting | Per-client sliding window (plan-based or custom) |
+| Payload limit | Up to 10,000 characters |
+| LLM timeout | 30 seconds |
 
-## Executando os testes
+## Running the tests
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-130 testes cobrindo tokenizer, NLP, estratégias, precificação, pós-processador, detecção de idioma (EN/PT/ES), pipeline do otimizador, integração com a CLI (incluindo `--json` e `--diff`), API REST (autenticação, rate limiting, limite de payload, `/optimize`, `/chat` com LLM simulado) e endpoints de administração.
+130 tests covering the tokenizer, NLP, strategies, pricing, post-processor, language detection (EN/PT/ES), the optimizer pipeline, CLI integration (including `--json` and `--diff`), the REST API (authentication, rate limiting, payload limit, `/optimize`, `/chat` with a mocked LLM) and the admin endpoints.
 
-## Estrutura do projeto
+## Project structure
 
 ```
 TokenWise/
 ├── api/
-│   ├── main.py            # App FastAPI: health, optimize, chat + roteador admin
-│   ├── admin.py           # CRUD de /admin/clients (Fase C)
+│   ├── main.py            # FastAPI app: health, optimize, chat + admin router
+│   ├── admin.py           # /admin/clients CRUD (Phase C)
 │   ├── auth.py            # require_admin_auth + require_client_auth + rate limiting
-│   ├── database.py        # Client store SQLite (stdlib sqlite3)
-│   ├── config.py          # Config central: limite de payload, timeout de LLM
-│   ├── llm.py             # Cliente LLM upstream (Anthropic + OpenAI + Gemini)
-│   └── schemas.py         # Modelos Pydantic de requisição/resposta
+│   ├── database.py        # SQLite client store (stdlib sqlite3)
+│   ├── config.py          # Central config: payload limit, LLM timeout
+│   ├── llm.py             # Upstream LLM client (Anthropic + OpenAI + Gemini)
+│   └── schemas.py         # Pydantic request/response models
 ├── optimizer/
-│   ├── core.py            # Pipeline do otimizador + detecção de idioma
-│   ├── strategies.py      # Estratégias plugáveis com listas de frases EN/PT/ES
-│   ├── nlp.py             # Processamento NLTK (en + pt + es)
-│   ├── tokenizer.py       # Contagem de tokens (tiktoken)
-│   ├── pricing.py         # Cálculo de custo em USD por modelo
-│   ├── postprocessor.py   # Correção de qualidade da saída (pontuação, capitalização)
-│   └── models.py          # Tipos de dados
+│   ├── core.py            # Optimizer pipeline + language detection
+│   ├── strategies.py      # Pluggable strategies with EN/PT/ES phrase lists
+│   ├── nlp.py             # NLTK processing (en + pt + es)
+│   ├── tokenizer.py       # Token counting (tiktoken)
+│   ├── pricing.py         # USD cost calculation per model
+│   ├── postprocessor.py   # Output quality fixes (punctuation, capitalization)
+│   └── models.py          # Data types
 ├── tests/
 ├── main.py
 ├── pyproject.toml
@@ -343,18 +343,18 @@ TokenWise/
 
 ## Roadmap
 
-### Concluído
-- Endpoint REST `POST /optimize` (FastAPI) ✓
-- Endpoint proxy `POST /chat` — otimiza e encaminha para Claude / GPT / Gemini ✓
-- Tokens de API por cliente com limites individuais de requisição (Fase C) ✓
-  - Client store SQLite, CRUD em `/admin/clients`
-  - Planos: `basic` (60 req/min) e `pro` (300 req/min), totalmente personalizáveis
-  - Rate limiting por janela deslizante por cliente
-  - Tokens armazenados como hashes SHA-256 — texto exibido apenas na criação
-- Flag `--json` — saída JSON legível por máquina para scripts e pipelines de CI ✓
-- Flag `--diff` — exibe as alterações palavra a palavra (removidos em vermelho, substituições em verde) ✓
-- Suporte ao espanhol (`es`) — stopwords (309 palavras), 22 frases prolixas, detecção automática ✓
+### Done
+- `POST /optimize` REST endpoint (FastAPI) ✓
+- `POST /chat` proxy endpoint: optimizes and forwards to Claude / GPT / Gemini ✓
+- Per-client API tokens with individual rate limits (Phase C) ✓
+  - SQLite client store, CRUD at `/admin/clients`
+  - Plans: `basic` (60 req/min) and `pro` (300 req/min), fully customizable
+  - Per-client sliding window rate limiting
+  - Tokens stored as SHA-256 hashes, plaintext shown only at creation
+- `--json` flag: machine-readable JSON output for scripts and CI pipelines ✓
+- `--diff` flag: shows word-by-word changes (removals in red, replacements in green) ✓
+- Spanish support (`es`): stopwords (309 words), 22 verbose phrases, automatic detection ✓
 
-## Licença
+## License
 
 MIT
